@@ -1,0 +1,164 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Conda
+.conda/
+conda-meta/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Large Data Files (corpus, indexes, PDFs)
+# Keep small datasets but ignore large processed files
+data/corpus/**/*.jsonl
+data/corpus/**/*.tsv
+data/corpus/**/*.tsv.gz
+data/corpus/**/*.bz2
+data/corpus/**/*.gz
+data/corpus/wiki/temp/
+data/corpus/wiki/.cache/
+
+# Indexes (very large, 23GB+)
+data/indexes/**/*.npy
+data/indexes/**/*.json
+data/indexes/**/*.mmindex.json
+data/indexes/**/corpus.jsonl
+data/indexes/**/vocab.*
+data/indexes/**/params.*
+data/indexes/**/stopwords.*
+data/indexes/**/data.*
+data/indexes/**/indices.*
+data/indexes/**/indptr.*
+
+# Source PDFs (2000 files, large)
+data/docs/**/*.pdf
+
+# Benchmarks (large extracted files)
+data/benchmarks/**/*.jsonl
+data/benchmarks/**/*.bz2
+data/benchmarks/wiki_corpus/temp/
+
+# Keep small datasets
+!data/datasets/custom_dataset/train.jsonl
+!data/datasets/custom_dataset/test.jsonl
+
+# Rejected datasets (can be regenerated)
+data/datasets/rejected/
+data/datasets/verification_samples/
+
+# Model checkpoints and weights
+*.ckpt
+*.pth
+*.pt
+*.h5
+*.safetensors
+checkpoints/
+models/
+weights/
+
+# Cache directories
+.cache/
+*.cache
+cache/
+__cache__/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+/tmp/
+
+# FlashRAG specific
+flashrag_dev.egg-info/
+*.index
+
+# HuggingFace cache
+.huggingface/
+transformers_cache/
+
+# Weights & Biases
+wandb/
+
+# Ray
+ray_results/
+
+# MongoDB data
+*.db
+*.sqlite
+*.sqlite3
+
+# Large compressed files
+*.tar
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Keep README and test scripts
+!data/README.md
+!data/test_flashrag.py
+!data/scripts/*.py
+!data/scripts/*.md
+

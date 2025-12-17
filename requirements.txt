@@ -1,0 +1,42 @@
+# Core PyTorch (shared across components)
+torch==2.9.1
+torchvision==0.24.1
+torchaudio==2.9.1
+
+# FlashRAG dependencies
+# Note: Install FlashRAG as editable package: pip install -e src/rag/FlashRAG
+datasets
+base58
+nltk
+numpy
+langid
+openai
+peft
+PyYAML
+rank_bm25
+rouge
+spacy
+tiktoken
+tqdm
+transformers>=4.40.0
+bm25s[core]==0.2.1
+termcolor
+fschat
+streamlit
+chonkie>=1.0.2,<1.1.0
+gradio>=5.0.0
+rouge-chinese
+jieba
+
+# FlashRAG optional dependencies (install as needed)
+# sentence-transformers>=3.0.1  # For easier retriever usage
+# pyserini  # For BM25 retrieval
+# vllm  # For faster LLM inference
+# timm  # For multimodal support
+# torchvision  # Already included above
+# pillow  # For multimodal support
+# qwen_vl_utils  # For multimodal support
+
+# Note: FAISS must be installed via conda:
+# conda install -c pytorch faiss-cpu=1.8.0  # or faiss-gpu for GPU support
+
