@@ -1,0 +1,13 @@
+Method,EM,F1,Retrieval_Recall,Date,Directory
+02_naive_rag,0.0230,0.0962,0.7586,Unknown,custom_dataset_2025_12_18_11_02_naive_rag
+33_naive_rag,0.0230,0.1440,0.7586,Unknown,custom_dataset_2025_12_18_11_33_naive_rag
+48_iterretgen,0.0230,0.1296,0.7241,Unknown,custom_dataset_2025_12_18_11_48_iterretgen
+02_adaptive_rag,0.0000,0.1271,0.0805,Unknown,custom_dataset_2025_12_18_13_02_adaptive_rag
+19_naive_rag_topk10,0.0000,0.0343,0.8046,Unknown,custom_dataset_2025_12_27_09_19_naive_rag_topk10
+42_naive_rag_openai_gpt-4o-mini_topk5,0.0230,0.2749,0.7586,Unknown,custom_dataset_2025_12_27_09_42_naive_rag_openai_gpt-4o-mini_topk5
+27_dense_e5_gpt-4o-mini_topk5,0.0345,0.3082,0.8391,Unknown,custom_dataset_2025_12_27_10_27_dense_e5_gpt-4o-mini_topk5
+33_dense_e5_gpt-4o-mini_topk5,0.0345,0.3038,0.8391,Unknown,custom_dataset_2025_12_27_10_33_dense_e5_gpt-4o-mini_topk5
+53_dense_e5_gpt-4o-mini_topk3,0.0460,0.3008,0.7816,Unknown,custom_dataset_2025_12_27_10_53_dense_e5_gpt-4o-mini_topk3
+56_dense_e5_gpt-4o-mini_topk10,0.0345,0.3110,0.8736,Unknown,custom_dataset_2025_12_27_10_56_dense_e5_gpt-4o-mini_topk10
+hotpotqa_naive_rag_ollama_topk5,0.1700,0.2578,0.4550,Unknown,hotpotqa_2025_12_27_11_25_hotpotqa_naive_rag_ollama_topk5
+hotpotqa_naive_rag_openai_gpt-4o-mini_topk5,0.1930,0.3062,0.4550,Unknown,hotpotqa_2025_12_27_12_19_hotpotqa_naive_rag_openai_gpt-4o-mini_topk5

@@ -1,0 +1,164 @@
+# ============================================
+# Custom Baseline Configuration for Academic QA Dataset
+# ============================================
+# This config is tailored for the custom academic/research QA dataset
+# with custom corpus (34K chunks) and BM25 retrieval
+
+# ------------------------------------------------Global Paths------------------------------------------------#
+# Paths to models (using HuggingFace model names)
+model2path:
+    e5: "intfloat/e5-base-v2"
+    bge: "BAAI/bge-base-en-v1.5"
+    contriever: "facebook/contriever"
+    llama2-7B-chat: "meta-llama/Llama-2-7b-chat-hf"
+    llama2-7B: "meta-llama/Llama-2-7b-hf"
+    llama2-13B: "meta-llama/Llama-2-13b-hf"
+    llama2-13B-chat: "meta-llama/Llama-2-13b-chat-hf"
+    llama3-8B-instruct: "meta-llama/Meta-Llama-3-8B-Instruct"
+
+# Pooling methods for each embedding model
+model2pooling:
+    e5: "mean"
+    bge: "cls"
+    contriever: "mean"
+    jina: "mean"
+    dpr: "cls"
+
+# Indexes path for retrieval models (set to None, will be overridden in config_dict)
+method2index:
+    e5: ~
+    bm25: ~
+    contriever: ~
+
+# ------------------------------------------------Environment Settings------------------------------------------------#
+# Directory paths for data and outputs
+# Note: These paths are relative to the project root
+data_dir: "data/datasets/" # Directory containing custom_dataset/
+save_dir: "experiments/results/baselines/" # Where to save experiment results
+
+gpu_id: "0" # Single GPU for now, can be changed to "0,1,2,3" for multi-GPU
+dataset_name: "custom_dataset" # Name of the dataset folder in data_dir
+split: ["test"] # Dataset split to load (test set has 87 samples)
+
+# Sampling configurations for testing
+test_sample_num: ~ # None = test all 87 samples
+random_sample: False # Whether to randomly sample test samples
+
+# Seed for reproducibility
+seed: 2024
+
+# Whether save intermediate data
+save_intermediate_data: True
+save_note: "baseline" # Will be overridden per method
+
+# -------------------------------------------------Retrieval Settings------------------------------------------------#
+# BM25 retrieval configuration for custom corpus
+# Using combined corpus (train + test) so test questions can be answered
+retrieval_method: "bm25" # Using BM25 sparse retrieval
+index_path: "data/indexes/custom_combined_bm25" # Path to BM25 index (combined train + test)
+corpus_path: "data/corpus/custom/combined_corpus.jsonl" # Combined corpus: 41,717 chunks (34K train + 7.7K test)
+bm25_backend: "bm25s" # BM25 backend: bm25s or pyserini
+
+# Retrieval parameters
+retrieval_topk: 5 # Number of documents to retrieve
+retrieval_batch_size: 256 # Batch size for retrieval
+retrieval_use_fp16: True # Use FP16 for efficiency
+retrieval_query_max_length: 128 # Max length of query
+retrieval_pooling_method: ~ # Not used for BM25
+
+# Cache settings
+save_retrieval_cache: False # Don't save cache for now
+use_retrieval_cache: False # Don't use cache
+retrieval_cache_path: ~
+
+# Other retrieval settings
+instruction: ~ # No instruction for BM25
+faiss_gpu: False # Not used for BM25
+use_sentence_transformer: False
+silent_retrieval: False # Show retrieval progress
+
+# -------------------------------------------------Reranker Settings------------------------------------------------#
+use_reranker: False # No reranker for baseline
+rerank_model_name: ~
+rerank_model_path: ~
+rerank_pooling_method: ~
+rerank_topk: 5
+rerank_max_length: 512
+rerank_batch_size: 256
+rerank_use_fp16: True
+
+# -------------------------------------------------Generator Settings------------------------------------------------#
+# LLM generator configuration
+# Using Ollama (OpenAI-compatible API) since it's running locally
+# Alternative options:
+#   - OpenAI API: framework="openai", generator_model="gpt-4o-mini", openai_setting.api_key="your-key"
+#   - HuggingFace: framework="vllm", generator_model="llama3-8B-instruct" (requires HF_TOKEN)
+framework: "openai" # Inference framework: 'hf', 'vllm', 'fschat', 'openai'
+generator_model: "llama3.1:8b-instruct-q4_K_M" # Ollama model name (use full model ID)
+
+# OpenAI API settings (used for Ollama's OpenAI-compatible API)
+openai_setting:
+    api_key: "ollama" # Not needed for Ollama, but required field
+    base_url: "http://localhost:11434/v1" # Ollama's OpenAI-compatible endpoint
+
+# Generator parameters
+generator_max_input_len: 8192 # Max input length (academic questions can be long)
+generator_batch_size: 2 # Batch size (invalid for openai framework)
+gpu_memory_utilization: 0.85 # Not used for openai framework
+
+# Generation parameters
+# Note: skip_special_tokens is not supported by OpenAI API - handled automatically
+generation_params:
+    do_sample: False # Deterministic generation
+    max_tokens: 256 # Max tokens for answer (academic answers can be detailed)
+    temperature: 0.0 # Temperature for generation (0 = deterministic)
+    top_p: 1.0 # Top-p sampling
+
+use_fid: False # Fusion-in-Decoder (not used for decoder-only models)
+
+# -------------------------------------------------Refiner Settings------------------------------------------------#
+# No refiner for baseline experiments
+refiner_name: ~
+refiner_model_path: ~
+refiner_topk: 5
+refiner_pooling_method: "mean"
+refiner_encode_max_length: 256
+refiner_max_input_length: 1024
+refiner_max_output_length: 512
+
+# LLMLingua settings (if using compression)
+llmlingua_config:
+    rate: 0.55
+    condition_in_question: "after_condition"
+    reorder_context: "sort"
+    dynamic_context_compression_ratio: 0.3
+    condition_compare: True
+    context_budget: "+100"
+    rank_method: "longllmlingua"
+
+# Selective-Context settings
+sc_config:
+    reduce_ratio: 0.5
+
+# -------------------------------------------------Evaluation Settings------------------------------------------------#
+# Metrics to evaluate the results
+metrics: ["em", "f1", "retrieval_recall", "input_tokens"]
+# Metrics explanation:
+# - em: Exact Match (string match with golden answers)
+# - f1: Token-level F1 score
+# - retrieval_recall: Whether retrieved docs contain the answer
+# - input_tokens: Measures efficiency (token usage)
+
+# Metric-specific settings
+metric_setting:
+    retrieval_recall_topk: 5 # Top-k for retrieval recall calculation
+    tokenizer_name: "gpt-4" # Tokenizer for input_tokens metric
+
+save_metric_score: True # Save metric scores to text file
+
+# -------------------------------------------------Additional Settings------------------------------------------------#
+# For reasoning-based methods (if used later)
+is_reasoning: false
+
+# Disable save (set to False to enable saving)
+disable_save: False

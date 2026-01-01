@@ -49,6 +49,9 @@ conda-meta/
 .ipynb_checkpoints/
 *.ipynb
 
+# Markdown files
+*.md
+
 # Environment variables
 .env
 .env.local
@@ -133,10 +136,48 @@ temp/
 # FlashRAG specific
 flashrag_dev.egg-info/
 *.index
+*.faiss
+
+# Experiment Results (large JSON files, keep summaries)
+experiments/results/**/intermediate_data.json
+experiments/results/**/metric_score.txt
+experiments/results/**/config.yaml
+experiments/results/**/retrieval_diagnosis.json
+experiments/results/agent_lightning/
+# Keep summary files
+!experiments/results/BASELINE_SUMMARY.md
+!experiments/results/baselines/comparison_summary.csv
+
+# AgentLightning specific
+uv.lock
+node_modules/
+.pnpm-store/
+.npm/
+
+# Test and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+
+# Duplicate data directories
+data/data/
+
+# Keep README and test scripts
+!data/README.md
+!data/test_flashrag.py
+!data/scripts/*.py
+!data/scripts/*.md
 
 # HuggingFace cache
 .huggingface/
 transformers_cache/
+.hf_cache/
 
 # Weights & Biases
 wandb/
@@ -156,9 +197,8 @@ ray_results/
 *.rar
 *.7z
 
-# Keep README and test scripts
-!data/README.md
-!data/test_flashrag.py
-!data/scripts/*.py
-!data/scripts/*.md
+# Additional Python artifacts
+.python-version
+pip-log.txt
+pip-delete-this-directory.txt
 

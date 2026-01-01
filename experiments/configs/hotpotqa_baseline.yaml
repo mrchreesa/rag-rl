@@ -1,0 +1,148 @@
+# ============================================
+# HotpotQA Baseline Configuration
+# ============================================
+# This config is for HotpotQA multi-hop QA benchmark
+# with Wikipedia corpus and BM25 retrieval
+
+# ------------------------------------------------Global Paths------------------------------------------------#
+# Paths to models (using HuggingFace model names)
+model2path:
+    e5: "intfloat/e5-base-v2"
+    bge: "BAAI/bge-base-en-v1.5"
+    contriever: "facebook/contriever"
+    llama2-7B-chat: "meta-llama/Llama-2-7b-chat-hf"
+    llama2-7B: "meta-llama/Llama-2-7b-hf"
+    llama2-13B: "meta-llama/Llama-2-13b-hf"
+    llama2-13B-chat: "meta-llama/Llama-2-13b-chat-hf"
+    llama3-8B-instruct: "meta-llama/Meta-Llama-3-8B-Instruct"
+
+# Pooling methods for each embedding model
+model2pooling:
+    e5: "mean"
+    bge: "cls"
+    contriever: "mean"
+    jina: "mean"
+    dpr: "cls"
+
+# Indexes path for retrieval models
+method2index:
+    e5: ~
+    bm25: ~
+    contriever: ~
+
+# ------------------------------------------------Environment Settings------------------------------------------------#
+# Directory paths for data and outputs
+data_dir: "data/benchmarks/" # Directory containing hotpotqa/
+save_dir: "experiments/results/baselines/" # Where to save experiment results
+
+gpu_id: "0"
+dataset_name: "hotpotqa" # Name of the dataset folder in data_dir
+split: ["dev"] # HotpotQA dev set (7,405 samples)
+
+# Sampling configurations
+test_sample_num: 1000 # Limit to 1000 samples for efficiency
+random_sample: True # Randomly sample for representative subset
+
+# Seed for reproducibility
+seed: 2024
+
+# Whether save intermediate data
+save_intermediate_data: True
+save_note: "baseline"
+
+# -------------------------------------------------Retrieval Settings------------------------------------------------#
+# BM25 retrieval configuration for Wikipedia corpus
+retrieval_method: "bm25"
+index_path: "data/indexes/wiki_bm25/bm25" # Path to Wikipedia BM25 index
+corpus_path: "data/corpus/wiki/wiki_dpr.jsonl" # Wikipedia corpus: 21M passages
+bm25_backend: "bm25s"
+
+# Retrieval parameters
+retrieval_topk: 5 # Number of documents to retrieve
+retrieval_batch_size: 256
+retrieval_use_fp16: True
+retrieval_query_max_length: 128
+retrieval_pooling_method: ~
+
+# Cache settings
+save_retrieval_cache: False
+use_retrieval_cache: False
+retrieval_cache_path: ~
+
+# Other retrieval settings
+instruction: ~
+faiss_gpu: False
+use_sentence_transformer: False
+silent_retrieval: False
+
+# -------------------------------------------------Reranker Settings------------------------------------------------#
+use_reranker: False
+rerank_model_name: ~
+rerank_model_path: ~
+rerank_pooling_method: ~
+rerank_topk: 5
+rerank_max_length: 512
+rerank_batch_size: 256
+rerank_use_fp16: True
+
+# -------------------------------------------------Generator Settings------------------------------------------------#
+# LLM generator configuration - Ollama by default
+framework: "openai"
+generator_model: "llama3.1:8b-instruct-q4_K_M"
+
+# OpenAI API settings (Ollama's OpenAI-compatible API)
+openai_setting:
+    api_key: "ollama"
+    base_url: "http://localhost:11434/v1"
+
+# Generator parameters
+generator_max_input_len: 8192
+generator_batch_size: 2
+gpu_memory_utilization: 0.85
+
+# Generation parameters
+generation_params:
+    do_sample: False
+    max_tokens: 256
+    temperature: 0.0
+    top_p: 1.0
+
+use_fid: False
+
+# -------------------------------------------------Refiner Settings------------------------------------------------#
+refiner_name: ~
+refiner_model_path: ~
+refiner_topk: 5
+refiner_pooling_method: "mean"
+refiner_encode_max_length: 256
+refiner_max_input_length: 1024
+refiner_max_output_length: 512
+
+# LLMLingua settings
+llmlingua_config:
+    rate: 0.55
+    condition_in_question: "after_condition"
+    reorder_context: "sort"
+    dynamic_context_compression_ratio: 0.3
+    condition_compare: True
+    context_budget: "+100"
+    rank_method: "longllmlingua"
+
+# Selective-Context settings
+sc_config:
+    reduce_ratio: 0.5
+
+# -------------------------------------------------Evaluation Settings------------------------------------------------#
+# Metrics to evaluate - HotpotQA typically uses F1 as primary metric
+metrics: ["em", "f1", "retrieval_recall", "input_tokens"]
+
+metric_setting:
+    retrieval_recall_topk: 5
+    tokenizer_name: "gpt-4"
+
+save_metric_score: True
+
+# -------------------------------------------------Additional Settings------------------------------------------------#
+is_reasoning: false
+disable_save: False
+
