@@ -253,6 +253,7 @@ def run_demo(
             "",      # rl_answer
             "",      # baseline_answer
             "",      # rl_policy_md
+            "",      # efficiency_md
             "",      # metrics_md
             "",      # docs_md
             "",      # ground_truth_md
@@ -310,6 +311,27 @@ def run_demo(
     # RL Policy Decision panel
     policy_md = format_policy_output(rl_meta)
 
+    # Efficiency comparison (prominent)
+    baseline_topk = 10
+    baseline_cost = 0.05 + 0.01 * baseline_topk  # 0.15
+    rl_cost = 0.0
+    if rl_did_retrieve and rl_topk > 0:
+        rl_cost = 0.05 + 0.01 * rl_topk
+    docs_saved = baseline_topk - rl_topk
+    pct_saved = (docs_saved / baseline_topk * 100) if baseline_topk > 0 else 0
+    cost_saved = ((baseline_cost - rl_cost) / baseline_cost * 100) if baseline_cost > 0 else 0
+
+    efficiency_lines = [
+        f"| | RL Agent | Baseline | Saving |",
+        f"|---|---|---|---|",
+        f"| **Documents Retrieved** | **{rl_topk}** | {baseline_topk} | **{docs_saved} fewer ({pct_saved:.0f}%)** |",
+        f"| **Retrieval Cost** | **{rl_cost:.2f}** | {baseline_cost:.2f} | **{cost_saved:.0f}% lower** |",
+    ]
+    if rl_answer.strip() == baseline_answer.strip():
+        efficiency_lines.append("")
+        efficiency_lines.append("*Same answer quality with fewer documents — the RL agent learned to be efficient.*")
+    efficiency_md = "\n".join(efficiency_lines)
+
     # Metrics comparison table
     metrics_lines = ["| Metric | RL Agent | Baseline (always retrieve) |",
                      "|--------|----------|---------------------------|"]
@@ -320,7 +342,7 @@ def run_demo(
     metrics_lines.append(
         f"| **Retrieved** | {'Yes' if rl_did_retrieve else 'No'} | Yes |"
     )
-    metrics_lines.append(f"| **TopK Used** | {rl_topk} | 10 |")
+    metrics_lines.append(f"| **TopK Used** | {rl_topk} | {baseline_topk} |")
     if rl_reward is not None:
         metrics_lines.append(f"| **Reward** | {rl_reward:.4f} | — |")
     if not ground_truths:
@@ -328,12 +350,20 @@ def run_demo(
         metrics_lines.append("_No ground truth available — F1/EM cannot be computed._")
     metrics_md = "\n".join(metrics_lines)
 
-    # Retrieved documents
-    docs_md = format_docs(rl_docs if rl_did_retrieve else baseline_docs)
-    if rl_did_retrieve:
-        docs_md = "**Source**: RL Agent retrieval\n\n" + docs_md
+    # Retrieved documents — show both side by side
+    rl_docs_count = len(rl_docs) if rl_docs else 0
+    bl_docs_count = len(baseline_docs) if baseline_docs else 0
+    docs_parts = []
+    docs_parts.append(f"### RL Agent — {rl_docs_count} document(s) retrieved\n")
+    if rl_did_retrieve and rl_docs:
+        docs_parts.append(format_docs(rl_docs))
+    elif not rl_did_retrieve:
+        docs_parts.append("_RL agent chose not to retrieve — answered from LLM knowledge._")
     else:
-        docs_md = "**Source**: Baseline retrieval (RL agent skipped retrieval)\n\n" + docs_md
+        docs_parts.append("_No documents._")
+    docs_parts.append(f"\n\n---\n\n### Baseline — {bl_docs_count} document(s) retrieved\n")
+    docs_parts.append(format_docs(baseline_docs))
+    docs_md = "\n".join(docs_parts)
 
     # Ground truth
     if ground_truths:
@@ -348,6 +378,7 @@ def run_demo(
         rl_answer,
         baseline_answer,
         policy_md,
+        efficiency_md,
         metrics_md,
         docs_md,
         gt_md,
@@ -441,6 +472,10 @@ def build_ui():
             label="Question (after transcription)", interactive=False, visible=True
         )
 
+        # ---- Efficiency Highlight ----
+        gr.Markdown("### Efficiency Comparison")
+        efficiency_output = gr.Markdown(value="")
+
         # ---- Main Output Section ----
         with gr.Row():
             # Left column: RL Policy Decision
@@ -450,7 +485,7 @@ def build_ui():
 
             # Right column: Metrics Comparison
             with gr.Column(scale=2):
-                gr.Markdown("### Metrics Comparison")
+                gr.Markdown("### Quality Metrics")
                 metrics_output = gr.Markdown(value="")
 
         # ---- Answers Side-by-Side ----
@@ -496,6 +531,7 @@ def build_ui():
                 rl_answer_box,
                 baseline_answer_box,
                 policy_output,
+                efficiency_output,
                 metrics_output,
                 docs_output,
                 gt_output,
@@ -512,6 +548,7 @@ def build_ui():
                 rl_answer_box,
                 baseline_answer_box,
                 policy_output,
+                efficiency_output,
                 metrics_output,
                 docs_output,
                 gt_output,
