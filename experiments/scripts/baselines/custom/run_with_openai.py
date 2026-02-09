@@ -111,7 +111,14 @@ def main():
     # Check API key
     if not os.environ.get("OPENAI_API_KEY"):
         print("❌ OPENAI_API_KEY environment variable not set!")
-        print("   Set it with: export OPENAI_API_KEY='your-api-key'")
+        print("\n   Options to set it:")
+        print("   1. Export for this session:")
+        print("      export OPENAI_API_KEY='your-key'")
+        print("   2. Create .env file in project root:")
+        print("      echo 'OPENAI_API_KEY=your-key' > .env")
+        print("   3. Add to your shell config (~/.zshrc):")
+        print("      echo 'export OPENAI_API_KEY=\"your-key\"' >> ~/.zshrc")
+        print("\n   After setting, run this script again.")
         sys.exit(1)
     
     if args.method == "naive_rag" or args.method == "both":

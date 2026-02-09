@@ -28,6 +28,10 @@ gradio>=5.0.0
 rouge-chinese
 jieba
 
+# Experiment tracking and visualization
+wandb
+pyyaml
+
 # FlashRAG optional dependencies (install as needed)
 # sentence-transformers>=3.0.1  # For easier retriever usage
 # pyserini  # For BM25 retrieval

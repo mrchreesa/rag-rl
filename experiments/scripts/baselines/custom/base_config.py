@@ -6,6 +6,7 @@ Shared across all baseline scripts.
 
 import os
 import sys
+from pathlib import Path
 
 # Fix OpenMP conflict (multiple OpenMP runtimes issue)
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
@@ -15,6 +16,27 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '../../..'))
 FLASHRAG_PATH = os.path.join(PROJECT_ROOT, 'src/rag/FlashRAG')
 sys.path.insert(0, FLASHRAG_PATH)
+
+# Add experiments utils to path for env loader
+sys.path.insert(0, os.path.join(PROJECT_ROOT, 'experiments'))
+
+# Load .env file if it exists
+try:
+    from utils.env_loader import load_env_file
+    load_env_file(Path(PROJECT_ROOT))
+except ImportError:
+    # Fallback: manually load .env if utils not available
+    env_file = Path(PROJECT_ROOT) / '.env'
+    if env_file.exists():
+        with open(env_file) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    if key and not os.environ.get(key):
+                        os.environ[key] = value
 
 # Common paths
 CONFIG_PATH = os.path.join(PROJECT_ROOT, "experiments", "configs", "custom_baseline.yaml")

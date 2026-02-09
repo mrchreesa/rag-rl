@@ -1,0 +1,112 @@
+# RL-RAG Agent Training Configuration
+# =====================================
+# Configuration for Agent Lightning training of retrieval decision agents
+
+# Training Settings
+training:
+  # Number of samples for sanity check training
+  sanity_check_samples: 500
+  # Full training samples
+  full_training_samples: 5000
+  # Validation samples
+  validation_samples: 500
+  # Random seed for reproducibility
+  seed: 42
+  # Number of training epochs
+  epochs: 3
+  # Number of parallel runners (for Agent Lightning)
+  n_runners: 1
+
+# Dataset Settings
+dataset:
+  # Primary training dataset
+  train_dataset: "hotpotqa"  # hotpotqa or custom
+  train_split: "dev"
+  # Evaluation dataset
+  eval_dataset: "custom"
+  eval_split: "test"
+  # Paths (relative to project root)
+  hotpotqa_path: "data/benchmarks/hotpotqa"
+  custom_path: "data/datasets/custom_dataset"
+
+# Retriever Settings
+retriever:
+  # Model for dense retrieval
+  model: "intfloat/e5-base-v2"
+  # FAISS index path (relative to project root)
+  index_path: "data/indexes/custom_e5/e5_Flat.index"
+  # Corpus path
+  corpus_path: "data/corpus/custom/combined_corpus.jsonl"
+  # Number of documents to retrieve
+  topk: 5
+
+# Generator Settings
+generator:
+  # Use OpenAI API or local Ollama
+  use_ollama: false
+  # OpenAI model
+  openai_model: "gpt-4o-mini"
+  # Ollama model (if use_ollama is true)
+  ollama_model: "llama3.1:8b-instruct-q4_K_M"
+  # Generation parameters
+  max_tokens: 256
+  temperature: 0.0
+
+# Reward Function Settings
+reward:
+  # Cost penalty for each retrieval action
+  retrieval_cost: 0.1
+  # Bonus for correct answer without retrieval
+  correct_no_retrieval_bonus: 0.1
+  # Use F1 score (true) or Exact Match (false) for quality
+  use_f1: true
+  # F1 threshold to consider answer "correct"
+  f1_threshold_for_correct: 0.5
+  # Format compliance bonus
+  format_bonus: 0.05
+
+# Agent Lightning Algorithm Settings
+algorithm:
+  # Algorithm type: baseline, apo, verl
+  type: "baseline"  # Start with baseline for sanity check
+  # APO-specific settings (for future use)
+  apo:
+    learning_rate: 1e-5
+    batch_size: 8
+    gradient_accumulation: 4
+
+# Output Settings
+output:
+  # Base directory for results
+  results_dir: "experiments/results/agent_lightning"
+  # Enable wandb logging
+  use_wandb: false
+  wandb_project: "rl-rag-agent"
+
+# Baseline Comparison Targets
+# These are from your BASELINE_SUMMARY.md
+baseline_targets:
+  # Best baseline performance to beat
+  best_f1: 0.3110  # Dense E5 + GPT-4o-mini topk=10
+  best_em: 0.046   # Dense E5 + GPT-4o-mini topk=3
+  best_recall: 0.8736  # Dense E5 topk=10
+  
+  # Efficiency target: achieve similar F1 with fewer retrievals
+  # Current baseline retrieval rate is 100%
+  target_retrieval_rate: 0.7  # Aim for 30% reduction
+
+# Experiment Plan Checklist
+# =========================
+# Phase 3: System Integration
+#   [x] Create rl_rag_agent.py wrapping FlashRAG's DenseRetriever
+#   [x] Define action space: Binary [RETRIEVE] vs [GENERATE_DIRECTLY]
+#
+# Phase 4: Reward Function Design
+#   [x] Implement reward logic (F1/EM - retrieval_cost)
+#   [x] Add efficiency bonus for correct answers without retrieval
+#
+# Phase 5: Hello World Training
+#   [ ] Train on HotpotQA (500 samples)
+#   [ ] Verify loss decrease
+#   [ ] Run evaluation on custom dataset
+

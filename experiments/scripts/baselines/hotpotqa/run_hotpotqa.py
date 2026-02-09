@@ -13,9 +13,30 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
 # Add FlashRAG to path
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '../../..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '../../../..'))
 FLASHRAG_PATH = os.path.join(PROJECT_ROOT, 'src/rag/FlashRAG')
 sys.path.insert(0, FLASHRAG_PATH)
+sys.path.insert(0, os.path.join(PROJECT_ROOT, 'experiments'))
+
+# Load .env file if it exists
+try:
+    from utils.env_loader import load_env_file
+    from pathlib import Path
+    load_env_file(Path(PROJECT_ROOT))
+except ImportError:
+    # Fallback: manually load .env
+    from pathlib import Path
+    env_file = Path(PROJECT_ROOT) / '.env'
+    if env_file.exists():
+        with open(env_file) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    if key and not os.environ.get(key):
+                        os.environ[key] = value
 
 from flashrag.config import Config
 from flashrag.utils import get_dataset
@@ -78,8 +99,11 @@ def get_openai_config(model: str = "gpt-4o-mini") -> dict:
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise ValueError(
-            "OPENAI_API_KEY environment variable not set. "
-            "Set it with: export OPENAI_API_KEY='your-key'"
+            "OPENAI_API_KEY environment variable not set.\n"
+            "Options to set it:\n"
+            "  1. Export for this session: export OPENAI_API_KEY='your-key'\n"
+            "  2. Create .env file in project root: echo 'OPENAI_API_KEY=your-key' > .env\n"
+            "  3. Add to shell config: echo 'export OPENAI_API_KEY=\"your-key\"' >> ~/.zshrc"
         )
     
     return {

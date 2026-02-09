@@ -1,0 +1,74 @@
+[
+  {
+    "id": "test_0",
+    "question": "What is the mission of PolitiFact?",
+    "golden_answers": ["To reduce false information and misleading statements in political speech and provide the public with a clear and accurate political information environment through professional fact-checking work."],
+    "metadata": {"type": "factual", "source": "2503.01394v1.pdf"}
+  },
+  {
+    "id": "test_2",
+    "question": "What kind of applications can an interaction-oriented world model support?",
+    "golden_answers": ["A wide range of applications, including human-robot interaction, closed-loop simulators, intelligent sports coaching, and immersive VR/AR gaming experiences."],
+    "metadata": {"type": "factual", "source": "2503.01291v1.pdf"}
+  },
+  {
+    "id": "test_3",
+    "question": "What is the primary goal of the OptMetaOpenFOAM framework?",
+    "golden_answers": ["The primary goal of OptMetaOpenFOAM is to bridge MetaOpenFOAM with external analysis and optimization tool libraries through a large language model (LLM)-driven chain-of-thought (COT) methodology, empowering non-expert users to perform sensitivity analyses and parameter optimizations with improved efficiency."],
+    "metadata": {"type": "factual", "source": "2503.01273v1.pdf"}
+  },
+  {
+    "id": "test_7",
+    "question": "What is the purpose of training a transformer sequence model according to the procedure described in the text?",
+    "golden_answers": ["The training procedure enables the model to learn the single-step predictive distributions that collectively define the full sequence likelihood."],
+    "metadata": {"type": "factual", "source": "2503.01215v1.pdf"}
+  },
+  {
+    "id": "test_9",
+    "question": "What is a limitation of conventional image classification models in soybean leaf disease detection?",
+    "golden_answers": ["Conventional models offer limited explainability, providing little insight into which leaf regions drive predictions and reducing interpretability and trust among agricultural experts."],
+    "metadata": {"type": "factual", "source": "2503.01284v3.pdf"}
+  },
+  {
+    "id": "test_11",
+    "question": "Why is it necessary to determine the magnetic ground state of model (1) in order to calculate its thermal properties?",
+    "golden_answers": ["The magnetic excitation spectrum is required to calculate the thermal properties, and this requires determining the magnetic ground state."],
+    "metadata": {"type": "reasoning", "source": "2503.01283v2.pdf"}
+  },
+  {
+    "id": "test_13",
+    "question": "According to Burrows et al. (2024), what two classes of progenitors lead to different ranges of natal kicks?",
+    "golden_answers": ["Low mass and low compactness that lead to kicks of ~100-200 km/s, and high mass and high compactness that lead to kicks of ~300-1000 km/s."],
+    "metadata": {"type": "factual", "source": "2503.01429v2.pdf"}
+  },
+  {
+    "id": "test_15",
+    "question": "What happens to the SBI posterior if the missing values are not imputed accurately?",
+    "golden_answers": ["The corresponding SBI posterior becomes biased."],
+    "metadata": {"type": "reasoning", "source": "2503.01287v1.pdf"}
+  },
+  {
+    "id": "test_16",
+    "question": "How can the Q-NL Verifier enhance the robustness of QA systems?",
+    "golden_answers": ["By preventing incorrect query execution through self-assessment capability, which allows the system to take corrective actions such as refining the translation or prompting the user for clarification."],
+    "metadata": {"type": "reasoning", "source": "2503.01385v1.pdf"}
+  },
+  {
+    "id": "test_12",
+    "question": "What is the purpose of the component that operates exclusively during the training phase?",
+    "golden_answers": ["It generates blurred region-of-interest (ROI) prompts through its convolution-based stochastic scaling algorithm."],
+    "metadata": {"type": "factual", "source": "2503.01265v1.pdf"}
+  },
+  {
+    "id": "test_14",
+    "question": "How does SBI (Stochastic Bayesian Inference) operate in scenarios with missing data?",
+    "golden_answers": ["SBI methods cannot operate on missing values, and so imputing xmis is necessary before proceeding to inference."],
+    "metadata": {"type": "factual", "source": "2503.01287v1.pdf"}
+  },
+  {
+    "id": "test_1",
+    "question": "What were the three models evaluated in Section 5.6?",
+    "golden_answers": ["The original model (LLM without finetuning), the fined-tuned model (LLM finetuned with our synthetic examples), and a model that is trained on filtered data using the verifier."],
+    "metadata": {"type": "factual", "source": "2503.01385v1.pdf"}
+  }
+]
