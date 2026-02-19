@@ -1,0 +1,155 @@
+% ============================================================================
+% Chapter 2: Background
+% ============================================================================
+
+\chapter{Background}
+\label{ch:background}
+
+This chapter reviews the foundational concepts underlying this dissertation: Retrieval-Augmented Generation, reinforcement learning for language models, and existing approaches to adaptive retrieval.
+
+\section{Retrieval-Augmented Generation}
+
+\subsection{Core Architecture}
+
+Retrieval-Augmented Generation (RAG) systems combine information retrieval with neural text generation. The standard RAG pipeline consists of three components:
+
+\begin{enumerate}
+    \item \textbf{Retriever:} Given a query $q$, retrieves relevant documents $D = \{d_1, d_2, \ldots, d_k\}$ from a corpus $\mathcal{C}$.
+
+    \item \textbf{Augmentation:} Constructs a prompt combining the query and retrieved documents.
+
+    \item \textbf{Generator:} A language model generates an answer conditioned on the augmented prompt.
+\end{enumerate}
+
+Formally, the generation probability is:
+\begin{equation}
+    P(a | q) = \sum_{d \in D} P(a | q, d) \cdot P(d | q)
+\end{equation}
+
+where $P(d | q)$ is the retrieval probability and $P(a | q, d)$ is the generation probability given the retrieved context.
+
+\subsection{Retrieval Methods}
+
+Two primary retrieval paradigms exist:
+
+\textbf{Sparse Retrieval (BM25):} Uses term frequency statistics with the Okapi BM25 scoring function:
+\begin{equation}
+    \text{BM25}(q, d) = \sum_{t \in q} \text{IDF}(t) \cdot \frac{f(t, d) \cdot (k_1 + 1)}{f(t, d) + k_1 \cdot (1 - b + b \cdot \frac{|d|}{\text{avgdl}})}
+\end{equation}
+
+where $f(t, d)$ is term frequency, $|d|$ is document length, and $k_1$, $b$ are tuning parameters.
+
+\textbf{Dense Retrieval:} Encodes queries and documents into dense vector representations using neural encoders. Relevance is computed via similarity (e.g., dot product or cosine):
+\begin{equation}
+    \text{sim}(q, d) = \mathbf{e}_q^\top \mathbf{e}_d
+\end{equation}
+
+where $\mathbf{e}_q$ and $\mathbf{e}_d$ are embeddings from models like E5~\cite{e5} or DPR~\cite{dpr}.
+
+\subsection{FlashRAG Toolkit}
+
+FlashRAG~\cite{flashrag} provides a modular framework implementing 23+ RAG methods. Its architecture includes:
+
+\begin{itemize}
+    \item \textbf{Retrievers:} Dense (E5, BGE, DPR), sparse (BM25), and hybrid methods
+    \item \textbf{Refiners:} Extractive selection, abstractive compression, LLMLingua
+    \item \textbf{Generators:} HuggingFace, vLLM, OpenAI API, Ollama
+    \item \textbf{Pipelines:} Sequential, conditional (judger-based), branching, and loop-based
+\end{itemize}
+
+\section{Reinforcement Learning Fundamentals}
+
+\subsection{Markov Decision Process}
+
+RL problems are formalized as Markov Decision Processes (MDPs) defined by the tuple $(\mathcal{S}, \mathcal{A}, P, R, \gamma)$:
+
+\begin{itemize}
+    \item $\mathcal{S}$: State space
+    \item $\mathcal{A}$: Action space
+    \item $P(s' | s, a)$: Transition probability
+    \item $R(s, a)$: Reward function
+    \item $\gamma$: Discount factor
+\end{itemize}
+
+The objective is to learn a policy $\pi(a | s)$ maximizing expected cumulative reward:
+\begin{equation}
+    J(\pi) = \mathbb{E}_{\tau \sim \pi} \left[ \sum_{t=0}^{T} \gamma^t R(s_t, a_t) \right]
+\end{equation}
+
+\subsection{Policy Gradient Methods}
+
+Policy gradient methods directly optimize the policy by computing gradients of the expected reward:
+\begin{equation}
+    \nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t | s_t) \cdot G_t \right]
+\end{equation}
+
+where $G_t = \sum_{k=t}^{T} \gamma^{k-t} R_k$ is the return from time $t$.
+
+\textbf{REINFORCE}~\cite{williams1992} is a Monte Carlo policy gradient algorithm that estimates the gradient using sampled trajectories:
+\begin{equation}
+    \nabla_\theta J(\theta) \approx \frac{1}{N} \sum_{i=1}^{N} \sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t^{(i)} | s_t^{(i)}) \cdot (G_t^{(i)} - b)
+\end{equation}
+
+where $b$ is a baseline to reduce variance.
+
+\subsection{Entropy Regularization}
+
+To encourage exploration, an entropy bonus is often added to the objective:
+\begin{equation}
+    J_{\text{entropy}}(\theta) = J(\theta) + \beta H(\pi_\theta)
+\end{equation}
+
+where $H(\pi_\theta) = -\sum_a \pi_\theta(a|s) \log \pi_\theta(a|s)$ is the policy entropy and $\beta$ controls the exploration-exploitation trade-off.
+
+\section{RL for Retrieval Optimization}
+
+\subsection{Adaptive Retrieval Decisions}
+
+Several works have explored learning when to retrieve:
+
+\textbf{Self-RAG}~\cite{selfrag}: Trains the LLM itself to output special tokens indicating whether retrieval is needed, achieving adaptive retrieval without a separate policy.
+
+\textbf{Adaptive-RAG}~\cite{adaptiverag}: Uses query complexity classification to route queries to different retrieval strategies (no retrieval, single-hop, multi-hop).
+
+\textbf{FLARE}~\cite{flare}: Monitors generation confidence and triggers retrieval when the model is uncertain, using token probabilities as the decision signal.
+
+\subsection{RL for RAG Optimization}
+
+\textbf{Agent Lightning}~\cite{agentlightning}: Provides a framework for training RAG agents using RL, modeling the pipeline as an MDP and optimizing with policy gradient methods.
+
+\textbf{MMOA-RAG}~\cite{mmoarag}: Models RAG as a cooperative multi-agent RL problem, jointly optimizing query rewriting, document selection, and generation.
+
+\textbf{MaFeRw}~\cite{maferw}: Uses multi-aspect dense rewards (retrieval metrics, ROUGE scores) to stabilize RL training for query rewriting.
+
+\subsection{Cost-Aware Retrieval}
+
+Kulkarni et al.~\cite{kulkarni} propose an RL policy with a binary action space [\texttt{FETCH}] vs. [\texttt{NO\_FETCH}], optimizing for answer quality minus retrieval cost. This directly inspired our approach.
+
+\section{Evaluation Metrics}
+
+\subsection{Answer Quality}
+
+\textbf{Exact Match (EM):} Binary metric indicating whether the prediction exactly matches a ground truth answer after normalization:
+\begin{equation}
+    \text{EM} = \mathbf{1}[\text{normalize}(\hat{a}) = \text{normalize}(a^*)]
+\end{equation}
+
+\textbf{F1 Score:} Token-level F1 between prediction and ground truth:
+\begin{equation}
+    \text{F1} = \frac{2 \cdot \text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}
+\end{equation}
+
+where precision and recall are computed over token overlap.
+
+\subsection{Retrieval Quality}
+
+\textbf{Recall@k:} Proportion of queries where at least one relevant document appears in the top-$k$ retrieved:
+\begin{equation}
+    \text{Recall@k} = \frac{1}{|Q|} \sum_{q \in Q} \mathbf{1}[\exists d \in D_k(q) : d \text{ is relevant}]
+\end{equation}
+
+We use token-overlap matching ($\geq 50\%$ overlap threshold) rather than exact substring matching to handle paraphrasing in academic text.
+
+\section{Summary}
+
+This chapter established the theoretical foundations for this dissertation. RAG systems augment LLMs with retrieved knowledge, but fixed retrieval strategies are suboptimal. RL provides a framework for learning adaptive policies, with policy gradient methods enabling optimization of discrete retrieval decisions. Prior work has explored adaptive retrieval, but the problem of training stable policies that avoid degenerate behaviors remains open.

@@ -52,8 +52,9 @@ except ImportError as e:
 try:
     from .query_rewriter import (
         QueryRewriter,
-        RLQueryRewriter, 
+        RLQueryRewriter,
         AdaptiveQueryRewriter,
+        StrategyRewriter,
         create_query_rewriter
     )
     QUERY_REWRITER_AVAILABLE = True
@@ -63,6 +64,7 @@ except ImportError as e:
     QueryRewriter = None
     RLQueryRewriter = None
     AdaptiveQueryRewriter = None
+    StrategyRewriter = None
     create_query_rewriter = None
 
 # Enhanced RL Pipeline - requires PyTorch
@@ -71,6 +73,7 @@ try:
         EnhancedRAGPipeline,
         RetrievalPolicyNetwork,
         DynamicTopKPolicyNetwork,
+        QueryRewritePolicyNetwork,
         RLTrainer,
         train_rl_rag
     )
@@ -81,6 +84,7 @@ except ImportError as e:
     EnhancedRAGPipeline = None
     RetrievalPolicyNetwork = None
     DynamicTopKPolicyNetwork = None
+    QueryRewritePolicyNetwork = None
     RLTrainer = None
     train_rl_rag = None
 
@@ -103,11 +107,13 @@ __all__ = [
     "QueryRewriter",
     "RLQueryRewriter",
     "AdaptiveQueryRewriter",
+    "StrategyRewriter",
     "create_query_rewriter",
     # Enhanced Pipeline
     "EnhancedRAGPipeline",
     "RetrievalPolicyNetwork",
     "DynamicTopKPolicyNetwork",
+    "QueryRewritePolicyNetwork",
     "RLTrainer",
     "train_rl_rag",
     # Dataset

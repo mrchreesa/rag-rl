@@ -1,0 +1,98 @@
+% ============================================================================
+% Chapter 7: Conclusion
+% ============================================================================
+
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+\section{Summary of Contributions}
+
+This dissertation investigated the use of Reinforcement Learning to optimize Retrieval-Augmented Generation systems. The key contributions are:
+
+\textbf{1. RL-RAG Framework:}
+We developed a modular pipeline integrating neural policy networks with RAG components. The framework uses REINFORCE for policy gradient optimization and supports curriculum learning, entropy regularization, and temperature-based sampling.
+
+\textbf{2. Lazy Agent Problem and Solutions:}
+We identified the ``lazy agent'' problem---where policies learn to never retrieve---and developed five complementary solutions:
+\begin{itemize}
+    \item Reward shaping with wrong-no-retrieval penalty
+    \item Curriculum learning with phased minimum retrieval rates
+    \item Entropy regularization for exploration
+    \item Temperature-based soft sampling during evaluation
+    \item Question difficulty features for informed decisions
+\end{itemize}
+
+\textbf{3. Custom Academic Dataset:}
+We created a high-quality QA dataset of 492 training and 87 test samples from 2,000 arXiv papers, with multi-stage quality filtering achieving $<5\%$ false positive rate.
+
+\textbf{4. Comprehensive Baseline Study:}
+We evaluated 8+ RAG configurations, finding that:
+\begin{itemize}
+    \item Dense retrieval (E5) outperforms sparse retrieval (BM25) by 8--11\% recall
+    \item Generator quality (GPT-4o-mini vs. Ollama) is the primary performance driver (+90.9\% F1)
+    \item The best baseline achieves 31.10\% F1 with Dense E5 + GPT-4o-mini
+\end{itemize}
+
+\textbf{5. Empirical Validation:}
+The trained RL policy achieves 33.87\% F1, matching the always-retrieve baseline (34.08\% F1) and exceeding the no-retrieval baseline (18.52\% F1) by 83\%. The policy correctly learned that academic domain questions require retrieval.
+
+\section{Research Questions Revisited}
+
+\textbf{RQ1: Can an RL-trained policy learn to make effective retrieval decisions?}
+
+Yes. The trained policy achieves performance comparable to the optimal fixed strategy (always retrieve). For our academic QA domain, the policy correctly learned that retrieval is almost always necessary, demonstrating that RL can discover domain-appropriate behavior through training.
+
+\textbf{RQ2: What reward function design enables stable training?}
+
+Stable training required:
+\begin{enumerate}
+    \item Wrong-no-retrieval penalty exceeding retrieval cost ($p_{\text{lazy}} > c_{\text{retr}}$)
+    \item Curriculum learning to expose the policy to retrieval benefits early
+    \item Entropy regularization to maintain exploration
+    \item Soft evaluation to prevent deterministic collapse
+\end{enumerate}
+
+Without these elements, the policy converged to degenerate ``never retrieve'' behavior.
+
+\textbf{RQ3: How does an RL-optimized policy compare to fixed baselines?}
+
+On our academic QA dataset, the RL policy matches the always-retrieve baseline (33.87\% vs. 34.08\% F1). This is the optimal result for this domain---the policy learned that retrieval is essential. On datasets with mixed question difficulty, RL policies could potentially reduce retrieval costs while maintaining quality.
+
+\section{Broader Impact}
+
+This work contributes to the growing field of adaptive RAG systems. As LLMs become more widely deployed, efficient retrieval strategies become increasingly important for:
+
+\begin{itemize}
+    \item \textbf{Cost reduction:} Avoiding unnecessary API calls and vector searches
+    \item \textbf{Latency improvement:} Skipping retrieval for simple queries
+    \item \textbf{Quality improvement:} Learning when retrieval helps vs. hurts
+\end{itemize}
+
+The lazy agent problem and its solutions have implications beyond RAG, applying to any RL setting where inaction has lower immediate cost than action.
+
+\section{Future Work}
+
+Several directions warrant further investigation:
+
+\textbf{1. Mixed-Difficulty Datasets:}
+Evaluating on datasets where some questions can be answered without retrieval would demonstrate selective retrieval behavior.
+
+\textbf{2. Multi-Step Retrieval:}
+Extending the action space to support iterative retrieval, query refinement, and adaptive topk selection would enable more sophisticated strategies.
+
+\textbf{3. Cross-Domain Transfer:}
+Investigating whether policies transfer across domains could reduce training costs.
+
+\textbf{4. Joint Optimization:}
+Training the retrieval policy jointly with query rewriting could improve end-to-end performance.
+
+\textbf{5. Human Evaluation:}
+Complementing automatic metrics with human judgment would provide additional validation.
+
+\section{Concluding Remarks}
+
+This dissertation demonstrated that Reinforcement Learning can optimize RAG retrieval decisions, but careful reward design is essential to avoid degenerate behaviors. The lazy agent problem---where policies learn to avoid action---is a fundamental challenge that we addressed through reward shaping, curriculum learning, and exploration mechanisms.
+
+For domain-specific applications like academic question-answering, the optimal strategy may be straightforward (always retrieve), but RL provides a principled way to discover this through data rather than manual rule design. For more general applications with mixed query difficulty, RL-optimized policies offer the potential for significant efficiency gains while maintaining answer quality.
+
+The modular framework, dataset, and solutions developed in this work provide a foundation for future research on adaptive retrieval in RAG systems.

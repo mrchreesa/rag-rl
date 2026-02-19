@@ -1,0 +1,46 @@
+{
+  "features": {
+    "corr_length_topk": NaN,
+    "corr_words_topk": NaN,
+    "type_summary": {
+      "what": {
+        "n": 51,
+        "avg_topk": 7.0,
+        "avg_f1": 0.3369316515203946
+      },
+      "why": {
+        "n": 15,
+        "avg_topk": 7.0,
+        "avg_f1": 0.38102638162570596
+      },
+      "other": {
+        "n": 6,
+        "avg_topk": 7.0,
+        "avg_f1": 0.4979736376155814
+      },
+      "how": {
+        "n": 14,
+        "avg_topk": 7.0,
+        "avg_f1": 0.31423203555928986
+      },
+      "do": {
+        "n": 1,
+        "avg_topk": 7.0,
+        "avg_f1": 0.22222222222222224
+      }
+    }
+  },
+  "adaptation": {
+    "n_different": 87,
+    "pct_different": 100.0,
+    "rl_f1_on_divergent": 0.3506692241111665,
+    "k3_f1_on_divergent": 0.34107909471923076
+  },
+  "buckets": {
+    "7": {
+      "count": 87,
+      "mean_f1": 0.3506692241111665,
+      "std_f1": 0.26038328985229375
+    }
+  }
+}

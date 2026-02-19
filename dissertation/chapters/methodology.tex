@@ -1,0 +1,292 @@
+% ============================================================================
+% Chapter 3: Methodology
+% ============================================================================
+
+\chapter{Methodology}
+\label{ch:methodology}
+
+This chapter presents the methodology for training an RL-optimized RAG system. We formalize the problem as an MDP, describe the policy network architecture, and detail the reward function design including solutions to the lazy agent problem.
+
+\section{Problem Formulation}
+
+\subsection{RAG as a Markov Decision Process}
+
+We model the RAG question-answering task as an episodic MDP where each episode corresponds to answering a single question.
+
+\textbf{State Space} $\mathcal{S}$: The state $s$ is the question $q$ represented as a dense embedding from a sentence encoder.
+
+\textbf{Action Space} $\mathcal{A}$: Binary action space:
+\begin{equation}
+    \mathcal{A} = \{\texttt{RETRIEVE}, \texttt{GENERATE\_DIRECTLY}\}
+\end{equation}
+
+\textbf{Transition Dynamics}: Deterministic---after selecting an action, the system retrieves (or not) and generates an answer.
+
+\textbf{Reward}: Based on answer quality (F1 score) with retrieval cost penalties and efficiency bonuses (detailed in Section~\ref{sec:reward}).
+
+\textbf{Episode}: Single-step---the agent observes a question, takes one action, receives reward, and the episode terminates.
+
+\subsection{Objective}
+
+The objective is to learn a policy $\pi_\theta(a | s)$ that maximizes expected reward:
+\begin{equation}
+    \max_\theta \mathbb{E}_{q \sim \mathcal{D}, a \sim \pi_\theta} \left[ R(q, a, \hat{a}, a^*) \right]
+\end{equation}
+
+where $\hat{a}$ is the generated answer and $a^*$ is the ground truth.
+
+\section{Policy Network Architecture}
+
+\subsection{Question Encoder}
+
+Questions are encoded using a pre-trained sentence transformer (E5-base-v2):
+\begin{equation}
+    \mathbf{h} = \text{Encoder}(q) \in \mathbb{R}^{768}
+\end{equation}
+
+\subsection{Policy Network}
+
+The policy network is a multi-layer perceptron that maps question embeddings to retrieval probabilities:
+
+\begin{equation}
+    \pi_\theta(a = \texttt{RETRIEVE} | q) = \sigma(\text{MLP}(\mathbf{h}))
+\end{equation}
+
+Architecture:
+\begin{align}
+    \mathbf{z}_1 &= \text{ReLU}(\mathbf{W}_1 \mathbf{h} + \mathbf{b}_1) & \mathbf{W}_1 \in \mathbb{R}^{256 \times 768} \\
+    \mathbf{z}_2 &= \text{ReLU}(\mathbf{W}_2 \mathbf{z}_1 + \mathbf{b}_2) & \mathbf{W}_2 \in \mathbb{R}^{64 \times 256} \\
+    p &= \sigma(\mathbf{w}_3^\top \mathbf{z}_2 + b_3) & \mathbf{w}_3 \in \mathbb{R}^{64}
+\end{align}
+
+where $\sigma$ is the sigmoid function and $p$ is the probability of retrieving.
+
+\subsection{Action Selection}
+
+During training, actions are sampled stochastically with epsilon-greedy exploration:
+\begin{equation}
+    a = \begin{cases}
+        \text{Uniform}(\mathcal{A}) & \text{with probability } \epsilon \\
+        \text{Bernoulli}(p) & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+During evaluation, we use temperature-scaled sampling (Section~\ref{sec:temperature}) rather than deterministic argmax.
+
+\section{Reward Function Design}
+\label{sec:reward}
+
+\subsection{Base Reward Components}
+
+The reward function balances answer quality with retrieval efficiency:
+
+\begin{equation}
+    R = R_{\text{quality}} + R_{\text{retrieval}} + R_{\text{format}}
+\end{equation}
+
+\textbf{Quality Reward} $R_{\text{quality}}$: Token-level F1 score between prediction and ground truth:
+\begin{equation}
+    R_{\text{quality}} = \text{F1}(\hat{a}, a^*) \in [0, 1]
+\end{equation}
+
+\textbf{Retrieval Reward} $R_{\text{retrieval}}$: Cost for retrieval, bonus for correct answers without retrieval:
+\begin{equation}
+    R_{\text{retrieval}} = \begin{cases}
+        -c_{\text{retr}} & \text{if retrieved} \\
+        +b_{\text{eff}} & \text{if not retrieved and F1} \geq \tau_{\text{correct}} \\
+        -p_{\text{lazy}} & \text{if not retrieved and F1} < \tau_{\text{bad}} \\
+        0 & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+\textbf{Format Reward} $R_{\text{format}}$: Small bonus for well-formed answers:
+\begin{equation}
+    R_{\text{format}} = \begin{cases}
+        +0.05 & \text{if } 0 < |\hat{a}| < 500 \\
+        0 & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+\subsection{Hyperparameters}
+
+\begin{table}[H]
+    \centering
+    \caption{Reward function hyperparameters}
+    \label{tab:reward-params}
+    \begin{tabular}{lcc}
+        \toprule
+        Parameter & Symbol & Value \\
+        \midrule
+        Retrieval cost & $c_{\text{retr}}$ & 0.1 \\
+        Efficiency bonus & $b_{\text{eff}}$ & 0.1 \\
+        Lazy agent penalty & $p_{\text{lazy}}$ & 0.3 \\
+        Correct threshold & $\tau_{\text{correct}}$ & 0.5 \\
+        Bad answer threshold & $\tau_{\text{bad}}$ & 0.3 \\
+        Format bonus & - & 0.05 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{The Lazy Agent Problem}
+
+\subsection{Problem Description}
+
+During initial experiments, we observed that the policy consistently learned to \emph{never} retrieve during evaluation, achieving 0\% retrieval rate. We term this the ``lazy agent'' problem.
+
+\textbf{Symptoms:}
+\begin{itemize}
+    \item Training shows exploration (26--72\% retrieval rate due to epsilon-greedy)
+    \item Evaluation uses deterministic policy $\rightarrow$ 0\% retrieval
+    \item Validation F1 stuck at $\sim$0.14 (LLM parametric knowledge only)
+\end{itemize}
+
+\textbf{Root Cause:} The reward structure made ``no retrieval'' appear optimal:
+\begin{itemize}
+    \item F1 without retrieval ($\sim$0.14) with no cost $>$ F1 with retrieval ($\sim$0.31) minus cost (0.1)
+    \item The efficiency bonus (+0.1) further incentivized skipping retrieval
+    \item Deterministic evaluation amplified this bias
+\end{itemize}
+
+\subsection{Solution 1: Reward Shaping}
+\label{sec:reward-shaping}
+
+The critical fix was introducing a penalty for bad answers without retrieval that \emph{exceeds} the retrieval cost:
+
+\begin{equation}
+    p_{\text{lazy}} > c_{\text{retr}}
+\end{equation}
+
+With $p_{\text{lazy}} = 0.3$ and $c_{\text{retr}} = 0.1$, the expected value of retrieving exceeds not retrieving when the LLM alone produces bad answers (F1 $< 0.3$).
+
+\textbf{Intuition:} The agent learns that the ``safe'' choice is to retrieve, because the penalty for being wrong without retrieval outweighs the cost of retrieving.
+
+\subsection{Solution 2: Curriculum Learning}
+\label{sec:curriculum}
+
+We implemented phased training with decreasing minimum retrieval rates:
+
+\begin{table}[H]
+    \centering
+    \caption{Curriculum learning phases}
+    \label{tab:curriculum}
+    \begin{tabular}{cccc}
+        \toprule
+        Phase & Epochs & Min Retrieval Rate & Purpose \\
+        \midrule
+        1 & 1--3 & 80\% & Learn retrieval value \\
+        2 & 4--6 & 40\% & Gradual autonomy \\
+        3 & 7+ & 0\% & Full policy control \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+During curriculum phases, random samples are forced to retrieve regardless of policy output:
+\begin{equation}
+    a = \begin{cases}
+        \texttt{RETRIEVE} & \text{with probability } r_{\min} \\
+        \text{Policy}(q) & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+\subsection{Solution 3: Entropy Regularization}
+\label{sec:entropy}
+
+We add an entropy bonus to the policy loss to encourage exploration:
+\begin{equation}
+    \mathcal{L} = -\log \pi_\theta(a | s) \cdot (R - b) - \beta H(\pi_\theta(s))
+\end{equation}
+
+where:
+\begin{equation}
+    H(\pi_\theta(s)) = -p \log p - (1-p) \log(1-p)
+\end{equation}
+
+We use $\beta = 0.01$.
+
+\subsection{Solution 4: Temperature-Based Sampling}
+\label{sec:temperature}
+
+Instead of deterministic argmax during evaluation, we use temperature-scaled sampling:
+\begin{equation}
+    p_{\text{temp}} = \sigma\left(\frac{\text{logit}(p)}{T}\right)
+\end{equation}
+
+where $\text{logit}(p) = \log(p / (1-p))$ and $T = 0.7$ is the temperature.
+
+This prevents the policy from collapsing to deterministic behavior during evaluation.
+
+\subsection{Solution 5: Question Difficulty Features}
+
+Optionally, we augment the state with question difficulty features:
+\begin{itemize}
+    \item Question length (characters, words)
+    \item Presence of named entities
+    \item Question type (what, who, how, why, etc.)
+    \item Complexity indicators
+\end{itemize}
+
+These features help the policy distinguish questions that can be answered directly from those requiring retrieval.
+
+\section{Training Algorithm}
+
+\subsection{REINFORCE with Baseline}
+
+We use the REINFORCE algorithm with a learned baseline for variance reduction:
+
+\begin{algorithm}[H]
+\caption{RL-RAG Training}
+\label{alg:training}
+\begin{algorithmic}[1]
+\Require Training data $\mathcal{D}$, policy $\pi_\theta$, baseline $b$
+\For{epoch $= 1$ to $E$}
+    \State Set curriculum parameters based on epoch
+    \State $\epsilon \gets \epsilon_0 \cdot \gamma^{\text{epoch}}$ \Comment{Decay exploration}
+    \For{batch in $\mathcal{D}$}
+        \For{question $q$ in batch}
+            \State $\mathbf{h} \gets \text{Encoder}(q)$
+            \State $p \gets \pi_\theta(\mathbf{h})$
+            \State Sample action $a$ (with epsilon-greedy and curriculum)
+            \If{$a = \texttt{RETRIEVE}$}
+                \State $D \gets \text{Retrieve}(q)$
+                \State $\hat{a} \gets \text{Generate}(q, D)$
+            \Else
+                \State $\hat{a} \gets \text{Generate}(q)$
+            \EndIf
+            \State Compute reward $R$ and advantage $A = R - b$
+            \State Store $(p, a, A, H)$ for update
+        \EndFor
+        \If{update step}
+            \State $\mathcal{L} \gets -\mathbb{E}[\log \pi_\theta(a|s) \cdot A + \beta H]$
+            \State $\theta \gets \theta - \alpha \nabla_\theta \mathcal{L}$
+        \EndIf
+    \EndFor
+    \State Evaluate on validation set
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Hyperparameters}
+
+\begin{table}[H]
+    \centering
+    \caption{Training hyperparameters}
+    \label{tab:training-params}
+    \begin{tabular}{lc}
+        \toprule
+        Parameter & Value \\
+        \midrule
+        Epochs & 10 \\
+        Initial epsilon & 0.5 \\
+        Epsilon decay & 0.7 per epoch \\
+        Learning rate & $10^{-3}$ \\
+        Update frequency & Every 5 samples \\
+        Entropy coefficient $\beta$ & 0.01 \\
+        Evaluation temperature & 0.7 \\
+        Curriculum phases & 3 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Summary}
+
+This chapter presented our methodology for training RL-optimized RAG systems. We formalized the problem as an MDP with a binary action space, designed a reward function balancing quality and efficiency, and developed five solutions to the lazy agent problem. The training algorithm uses REINFORCE with curriculum learning and entropy regularization.

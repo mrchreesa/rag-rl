@@ -1,0 +1,225 @@
+% ============================================================================
+% Appendix A: Code Listings
+% ============================================================================
+
+\chapter{Code Listings}
+\label{app:code}
+
+This appendix provides key code excerpts from the implementation.
+
+\section{Reward Function}
+
+\begin{lstlisting}[language=Python, caption=RAG Reward Calculator (reward.py)]
+class RAGRewardCalculator:
+    """
+    Reward calculator for RL-RAG agent training.
+
+    Implements the reward function:
+    - Base reward from answer quality (F1 or EM)
+    - Retrieval cost penalty
+    - Efficiency bonus for correct answers without retrieval
+    - Wrong non-retrieval penalty to prevent lazy agent
+    """
+
+    def __init__(
+        self,
+        retrieval_cost: float = 0.1,
+        correct_no_retrieval_bonus: float = 0.1,
+        wrong_no_retrieval_penalty: float = 0.3,
+        use_f1: bool = True,
+        f1_threshold_for_correct: float = 0.5,
+        f1_threshold_for_bad: float = 0.3,
+        format_bonus: float = 0.05
+    ):
+        self.retrieval_cost = retrieval_cost
+        self.correct_no_retrieval_bonus = correct_no_retrieval_bonus
+        self.wrong_no_retrieval_penalty = wrong_no_retrieval_penalty
+        self.use_f1 = use_f1
+        self.f1_threshold_for_correct = f1_threshold_for_correct
+        self.f1_threshold_for_bad = f1_threshold_for_bad
+        self.format_bonus = format_bonus
+
+    def compute_reward(
+        self,
+        prediction: str,
+        ground_truths: List[str],
+        did_retrieve: bool,
+        num_retrievals: int = 1
+    ) -> Tuple[float, dict]:
+        # Calculate quality scores
+        f1_score = compute_f1(prediction, ground_truths)
+        em_score = compute_exact_match(prediction, ground_truths)
+        quality_score = f1_score if self.use_f1 else em_score
+
+        # Determine if answer is correct or bad
+        is_correct = f1_score >= self.f1_threshold_for_correct
+        is_bad = f1_score < self.f1_threshold_for_bad
+
+        # Base quality reward
+        reward = quality_score
+
+        # Retrieval cost/bonus
+        if did_retrieve:
+            reward -= self.retrieval_cost * num_retrievals
+        else:
+            if is_correct:
+                reward += self.correct_no_retrieval_bonus
+            elif is_bad:
+                # Penalize bad no-retrieval more than retrieval cost
+                reward -= self.wrong_no_retrieval_penalty
+
+        # Format bonus
+        if prediction and 0 < len(prediction.strip()) < 500:
+            reward += self.format_bonus
+
+        return reward, {"f1": f1_score, "em": em_score}
+\end{lstlisting}
+
+\section{Policy Network}
+
+\begin{lstlisting}[language=Python, caption=Retrieval Policy Network (enhanced\_pipeline.py)]
+class RetrievalPolicyNetwork(nn.Module):
+    """Neural network for retrieval decisions."""
+
+    def __init__(self, input_dim: int = 768, hidden_dim: int = 256):
+        super().__init__()
+        self.network = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.network(x)
+
+    def get_action(
+        self,
+        x: torch.Tensor,
+        deterministic: bool = False,
+        temperature: float = 1.0
+    ) -> Tuple[bool, torch.Tensor, torch.Tensor]:
+        """Get action with optional temperature scaling."""
+        prob = self.forward(x)
+
+        # Apply temperature for soft sampling
+        if not deterministic and temperature != 1.0:
+            logit = torch.log(prob / (1 - prob + 1e-8))
+            prob = torch.sigmoid(logit / temperature)
+
+        # Sample action
+        if deterministic:
+            action = prob > 0.5
+        else:
+            action = torch.bernoulli(prob)
+
+        # Compute log probability
+        log_prob = torch.log(prob + 1e-8) if action else \
+                   torch.log(1 - prob + 1e-8)
+
+        # Compute entropy for regularization
+        entropy = -(prob * torch.log(prob + 1e-8) +
+                   (1 - prob) * torch.log(1 - prob + 1e-8))
+
+        return bool(action.item()), log_prob, entropy
+\end{lstlisting}
+
+\section{Training Loop}
+
+\begin{lstlisting}[language=Python, caption=Policy Update with Entropy Bonus]
+def update_policy(self, log_probs, rewards, entropies):
+    """Update policy using REINFORCE with entropy bonus."""
+
+    # Convert to tensors
+    log_probs = torch.stack(log_probs)
+    rewards = torch.tensor(rewards, dtype=torch.float32)
+    entropies = torch.stack(entropies)
+
+    # Compute advantages with baseline
+    baseline = rewards.mean()
+    advantages = rewards - baseline
+
+    # Normalize advantages
+    if len(advantages) > 1:
+        advantages = (advantages - advantages.mean()) / \
+                     (advantages.std() + 1e-8)
+
+    # Policy gradient loss with entropy bonus
+    policy_loss = -(log_probs * advantages).mean()
+    entropy_loss = -self.entropy_coef * entropies.mean()
+    total_loss = policy_loss + entropy_loss
+
+    # Update
+    self.optimizer.zero_grad()
+    total_loss.backward()
+    torch.nn.utils.clip_grad_norm_(
+        self.pipeline.policy.parameters(), 1.0
+    )
+    self.optimizer.step()
+
+    return total_loss.item(), entropies.mean().item()
+\end{lstlisting}
+
+\section{Curriculum Learning}
+
+\begin{lstlisting}[language=Python, caption=Curriculum Learning Implementation]
+def get_curriculum_params(self, epoch: int, total_epochs: int,
+                          num_phases: int = 3):
+    """Get curriculum learning parameters for current epoch."""
+
+    phase_length = total_epochs / num_phases
+    current_phase = int(epoch / phase_length)
+
+    # Minimum retrieval rates per phase
+    min_rates = [0.8, 0.4, 0.0]  # Force high retrieval early
+
+    if current_phase < len(min_rates):
+        min_retrieval_rate = min_rates[current_phase]
+    else:
+        min_retrieval_rate = 0.0
+
+    return {
+        'phase': current_phase + 1,
+        'min_retrieval_rate': min_retrieval_rate
+    }
+\end{lstlisting}
+
+\section{F1 Score Computation}
+
+\begin{lstlisting}[language=Python, caption=Token-level F1 Score (reward.py)]
+def normalize_answer(s: str) -> str:
+    """Normalize answer for comparison."""
+    def remove_articles(text):
+        return re.sub(r"\b(a|an|the)\b", " ", text)
+    def white_space_fix(text):
+        return " ".join(text.split())
+    def remove_punc(text):
+        exclude = set(string.punctuation)
+        return "".join(ch for ch in text if ch not in exclude)
+    def lower(text):
+        return text.lower()
+
+    return white_space_fix(remove_articles(remove_punc(lower(s))))
+
+def compute_f1(prediction: str, ground_truths: List[str]) -> float:
+    """Compute token-level F1 score."""
+    max_f1 = 0.0
+    pred_tokens = normalize_answer(prediction).split()
+
+    for gt in ground_truths:
+        gt_tokens = normalize_answer(gt).split()
+        common = Counter(pred_tokens) & Counter(gt_tokens)
+        num_same = sum(common.values())
+
+        if num_same == 0:
+            continue
+
+        precision = num_same / len(pred_tokens)
+        recall = num_same / len(gt_tokens)
+        f1 = 2 * precision * recall / (precision + recall)
+        max_f1 = max(max_f1, f1)
+
+    return max_f1
+\end{lstlisting}

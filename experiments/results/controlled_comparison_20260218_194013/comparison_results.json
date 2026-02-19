@@ -1,0 +1,64 @@
+[
+  {
+    "config": "k=0 (parametric)",
+    "avg_f1": 0.1849989321542944,
+    "avg_em": 0.0,
+    "avg_topk": 0.0,
+    "retrieval_rate": 0.0,
+    "n_samples": 87,
+    "elapsed_seconds": 93.93019795417786
+  },
+  {
+    "config": "k=1 (fixed)",
+    "avg_f1": 0.31761600746583984,
+    "avg_em": 0.05747126436781609,
+    "avg_topk": 1.0,
+    "retrieval_rate": 1.0,
+    "n_samples": 87,
+    "elapsed_seconds": 124.87936878204346
+  },
+  {
+    "config": "k=3 (fixed)",
+    "avg_f1": 0.3410790947192308,
+    "avg_em": 0.04597701149425287,
+    "avg_topk": 3.0,
+    "retrieval_rate": 1.0,
+    "n_samples": 87,
+    "elapsed_seconds": 142.06938314437866
+  },
+  {
+    "config": "k=5 (fixed)",
+    "avg_f1": 0.3442620332716679,
+    "avg_em": 0.034482758620689655,
+    "avg_topk": 5.0,
+    "retrieval_rate": 1.0,
+    "n_samples": 87,
+    "elapsed_seconds": 155.48105430603027
+  },
+  {
+    "config": "k=10 (fixed)",
+    "avg_f1": 0.3489482246907436,
+    "avg_em": 0.034482758620689655,
+    "avg_topk": 10.0,
+    "retrieval_rate": 1.0,
+    "n_samples": 87,
+    "elapsed_seconds": 192.8208658695221
+  },
+  {
+    "config": "RL Dynamic TopK",
+    "avg_f1": 0.3506692241111665,
+    "avg_em": 0.04597701149425287,
+    "avg_topk": 7.0,
+    "retrieval_rate": 1.0,
+    "n_samples": 87,
+    "elapsed_seconds": 244.119863986969,
+    "topk_distribution": {
+      "0": 0.0,
+      "1": 0.0,
+      "3": 0.0,
+      "5": 0.0,
+      "7": 1.0,
+      "10": 0.0
+    }
+  }
+]

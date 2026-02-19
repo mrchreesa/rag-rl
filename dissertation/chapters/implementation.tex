@@ -1,0 +1,324 @@
+% ============================================================================
+% Chapter 4: Implementation
+% ============================================================================
+
+\chapter{Implementation}
+\label{ch:implementation}
+
+This chapter describes the technical implementation of the RL-RAG system, including dataset preparation, system architecture, and experimental infrastructure.
+
+\section{Dataset Preparation}
+
+\subsection{Source Documents}
+
+We collected 2,000 academic papers from arXiv covering diverse scientific domains. The corpus was split into:
+\begin{itemize}
+    \item \textbf{Training:} 1,600 PDFs
+    \item \textbf{Test:} 400 PDFs
+\end{itemize}
+
+\subsection{QA Pair Generation}
+
+Question-answer pairs were generated using a multi-stage pipeline:
+
+\textbf{Step 1: Text Extraction and Chunking}
+\begin{itemize}
+    \item PDFs processed with PyPDFLoader
+    \item Text chunked using RecursiveCharacterTextSplitter (chunk size: 1,500 characters, overlap: 200)
+    \item Random sampling with fixed seed (42) for reproducibility
+\end{itemize}
+
+\textbf{Step 2: QA Generation}
+\begin{itemize}
+    \item Model: Llama 3.1 8B via Ollama (local)
+    \item Target: 1,000 training pairs, 200 test pairs
+    \item Prompt engineering for educational QA pairs with JSON output
+\end{itemize}
+
+\textbf{Step 3: Quality Assessment}
+
+Initial assessment using Claude 3 Haiku revealed quality issues (15--20\% false positive rate). We switched to GPT-4o-mini with multi-stage filtering:
+
+\begin{enumerate}
+    \item \textbf{Rule-based pre-filtering:} Automated detection of trivial questions, incomplete answers, math notation errors (reduces API calls by 25--30\%)
+
+    \item \textbf{LLM assessment:} GPT-4o-mini scores each pair on four criteria (1--10 scale):
+    \begin{itemize}
+        \item Question quality
+        \item Answer accuracy
+        \item Relevance
+        \item Educational value
+    \end{itemize}
+
+    \item \textbf{Threshold-based categorization:}
+    \begin{itemize}
+        \item High quality ($\geq 8.5$): Auto-approved
+        \item Borderline (7.5--8.5): Manual review
+        \item Rejected ($< 7.5$): Excluded
+    \end{itemize}
+
+    \item \textbf{Borderline promotion:} Pairs with score $\geq 8.0$ promoted to filtered dataset
+\end{enumerate}
+
+\subsection{Final Dataset Statistics}
+
+\begin{table}[H]
+    \centering
+    \caption{Dataset statistics after quality filtering}
+    \label{tab:dataset-stats}
+    \begin{tabular}{lcc}
+        \toprule
+        Metric & Training & Test \\
+        \midrule
+        QA pairs & 492 & 87 \\
+        Average score & 8.35/10 & 8.30/10 \\
+        Score range & 8.00--9.50 & 8.00--9.50 \\
+        False positive rate & $<5\%$ & $<5\%$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Corpus Preparation}
+
+Documents were processed for retrieval:
+
+\begin{enumerate}
+    \item \textbf{Text extraction:} PyPDFLoader with Unicode cleaning
+    \item \textbf{Chunking:} Sentence-based, 512 words per chunk
+    \item \textbf{Result:} 41,717 chunks from training corpus
+\end{enumerate}
+
+\begin{table}[H]
+    \centering
+    \caption{Corpus statistics}
+    \label{tab:corpus-stats}
+    \begin{tabular}{lcc}
+        \toprule
+        Corpus & Documents & Chunks \\
+        \midrule
+        Training & 1,600 & 34,040 \\
+        Test & 398 & 7,679 \\
+        Combined & 1,998 & 41,717 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{System Architecture}
+
+\subsection{Component Overview}
+
+The system consists of modular components organized in the \texttt{src/agents/} directory:
+
+\begin{figure}[H]
+    \centering
+    \begin{verbatim}
+    src/agents/
+    |-- enhanced_pipeline.py    # Main RL-RAG pipeline
+    |-- flashrag_components.py  # Retriever/Generator wrappers
+    |-- reward.py               # Reward calculation
+    |-- dataset.py              # Data loading utilities
+    +-- rl_rag_agent.py         # Agent Lightning integration
+    \end{verbatim}
+    \caption{Source code organization}
+    \label{fig:source-org}
+\end{figure}
+
+\subsection{Dense Retriever}
+
+We implemented a custom dense retriever wrapping E5-base-v2:
+
+\begin{lstlisting}[language=Python, caption=Dense retriever implementation]
+class DenseRetrieverWrapper:
+    def __init__(self, model_name="intfloat/e5-base-v2"):
+        self.model = SentenceTransformer(model_name)
+        self.index = faiss.read_index(index_path)
+        self.corpus = load_corpus(corpus_path)
+
+    def search(self, query: str, topk: int = 5):
+        # Add retrieval instruction for E5
+        query = f"query: {query}"
+        embedding = self.model.encode([query])
+        scores, indices = self.index.search(embedding, topk)
+        return [self.corpus[i] for i in indices[0]]
+\end{lstlisting}
+
+\textbf{Index:} FAISS Flat index with 768-dimensional vectors (128 MB, 41,717 vectors).
+
+\subsection{Generator}
+
+The generator wraps OpenAI's GPT-4o-mini API with retry logic and cost tracking:
+
+\begin{lstlisting}[language=Python, caption=Generator with cost tracking]
+class GeneratorWrapper:
+    PRICING = {
+        "gpt-4o-mini": {
+            "input": 0.15 / 1_000_000,
+            "output": 0.60 / 1_000_000
+        }
+    }
+
+    def generate(self, query: str, context: List[str] = None):
+        prompt = self._build_prompt(query, context)
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=256,
+            temperature=0.0
+        )
+        self._track_usage(response.usage)
+        return response.choices[0].message.content
+\end{lstlisting}
+
+\subsection{Policy Network}
+
+The policy network is implemented in PyTorch:
+
+\begin{lstlisting}[language=Python, caption=Policy network architecture]
+class RetrievalPolicyNetwork(nn.Module):
+    def __init__(self, input_dim=768, hidden_dim=256):
+        super().__init__()
+        self.network = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.network(x)
+
+    def get_action(self, x, deterministic=False, temperature=1.0):
+        prob = self.forward(x)
+        if not deterministic and temperature != 1.0:
+            logit = torch.log(prob / (1 - prob + 1e-8))
+            prob = torch.sigmoid(logit / temperature)
+        action = prob > 0.5 if deterministic else torch.bernoulli(prob)
+        log_prob = torch.log(prob if action else 1 - prob)
+        entropy = -(prob * torch.log(prob + 1e-8) +
+                   (1-prob) * torch.log(1-prob + 1e-8))
+        return action.item(), log_prob, entropy
+\end{lstlisting}
+
+\subsection{Reward Calculator}
+
+The reward calculator implements the reward function from Section~\ref{sec:reward}:
+
+\begin{lstlisting}[language=Python, caption=Reward calculation with lazy agent penalty]
+class RAGRewardCalculator:
+    def compute_reward(self, prediction, ground_truths,
+                       did_retrieve, num_retrievals=1):
+        f1_score = compute_f1(prediction, ground_truths)
+        is_correct = f1_score >= self.f1_threshold_for_correct
+        is_bad = f1_score < self.f1_threshold_for_bad
+
+        reward = f1_score  # Base quality reward
+
+        if did_retrieve:
+            reward -= self.retrieval_cost * num_retrievals
+        else:
+            if is_correct:
+                reward += self.correct_no_retrieval_bonus
+            elif is_bad:
+                # Critical fix: penalize bad no-retrieval
+                reward -= self.wrong_no_retrieval_penalty
+
+        return reward, {"f1": f1_score, "did_retrieve": did_retrieve}
+\end{lstlisting}
+
+\section{Training Infrastructure}
+
+\subsection{Training Script}
+
+The main training script (\texttt{train\_enhanced\_rag.py}) supports:
+
+\begin{itemize}
+    \item Command-line hyperparameter configuration
+    \item Weights \& Biases logging
+    \item Curriculum learning phases
+    \item Model checkpointing
+    \item Cost tracking
+\end{itemize}
+
+\begin{lstlisting}[language=bash, caption=Training command]
+python experiments/scripts/rl/train_enhanced_rag.py \
+    --dataset custom \
+    --samples 492 \
+    --epochs 10 \
+    --retrieval-cost 0.1 \
+    --wrong-no-retrieval-penalty 0.3 \
+    --entropy-coef 0.01 \
+    --wandb
+\end{lstlisting}
+
+\subsection{Evaluation Script}
+
+The evaluation script compares trained policies against baselines:
+
+\begin{lstlisting}[language=bash, caption=Evaluation command]
+python experiments/scripts/rl/evaluate_rl_agent.py \
+    --mode trained \
+    --checkpoint path/to/best_model.pt \
+    --samples 87
+\end{lstlisting}
+
+\subsection{Experiment Tracking}
+
+We use Weights \& Biases for experiment tracking with comprehensive logging:
+
+\begin{itemize}
+    \item Per-sample metrics: F1, EM, reward, retrieval decision
+    \item Epoch summaries: average F1, retrieval rate, entropy, loss
+    \item Training curves: learning dynamics over epochs
+    \item Hyperparameter tracking: full configuration logged
+\end{itemize}
+
+\section{Technical Challenges and Solutions}
+
+\subsection{FlashRAG Pipeline Issues}
+
+FlashRAG's built-in pipelines caused segmentation faults due to FAISS/multiprocessing/MPS interactions. We bypassed this by implementing custom wrappers that directly call retrieval and generation components.
+
+\subsection{OpenMP Conflict}
+
+macOS systems experienced OpenMP library conflicts. We added environment variable fixes:
+
+\begin{lstlisting}[language=Python]
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+\end{lstlisting}
+
+\subsection{API Rate Limiting}
+
+GPT-4o-mini has rate limits (10,000 requests per day). We implemented:
+\begin{itemize}
+    \item Exponential backoff retry logic
+    \item Request tracking and cost estimation
+    \item Option to disable query rewriter to halve API calls
+\end{itemize}
+
+\section{Hardware and Software}
+
+\begin{table}[H]
+    \centering
+    \caption{Experimental environment}
+    \label{tab:environment}
+    \begin{tabular}{ll}
+        \toprule
+        Component & Specification \\
+        \midrule
+        Hardware & Apple M3 Pro, 18GB RAM \\
+        OS & macOS 14.6 \\
+        Python & 3.10.19 \\
+        PyTorch & 2.x (MPS backend) \\
+        Sentence Transformers & 2.x \\
+        FAISS & 1.8.0 (CPU) \\
+        OpenAI API & gpt-4o-mini \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Summary}
+
+This chapter described the implementation of our RL-RAG system. We created a high-quality academic QA dataset through multi-stage filtering, implemented modular RAG components with cost tracking, and built training infrastructure with comprehensive experiment tracking. Technical challenges including FlashRAG compatibility and API rate limiting were addressed through custom implementations and careful engineering.

@@ -1,0 +1,18 @@
+{
+  "dataset": "hotpotqa",
+  "split": "dev",
+  "samples": 1000,
+  "seed": 2024,
+  "retrieval_method": "dense_e5",
+  "model": "gpt-4o-mini",
+  "topk": 5,
+  "index_path": "data/indexes/wiki_hotpotqa_e5/e5_Flat.index",
+  "corpus_path": "data/corpus/wiki/wiki_hotpotqa_subset.jsonl",
+  "corpus_size": 582445,
+  "results": {
+    "em": 0.211,
+    "f1": 0.3237228384434683,
+    "retrieval_recall": 0.579
+  },
+  "api_cost": 0.13163085
+}

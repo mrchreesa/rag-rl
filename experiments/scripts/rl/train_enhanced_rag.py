@@ -85,6 +85,19 @@ def parse_args():
     parser.add_argument("--per-doc-cost", type=float, default=0.01,
                         help="Cost per document retrieved (dynamic topk mode)")
 
+    # Algorithm selection
+    parser.add_argument("--algorithm", type=str, default="reinforce",
+                        choices=["reinforce", "grpo"],
+                        help="RL algorithm (default: reinforce)")
+    parser.add_argument("--group-size", type=int, default=8,
+                        help="GRPO group size (samples per query, default: 8)")
+
+    # Learned query rewriting
+    parser.add_argument("--learned-rewrite", action="store_true",
+                        help="Enable RL-trained query rewriting strategy selection")
+    parser.add_argument("--rewrite-entropy-coef", type=float, default=0.02,
+                        help="Entropy coefficient for rewrite policy (default: 0.02)")
+
     # Feature flags
     parser.add_argument("--no-rewriter", action="store_true",
                         help="Disable query rewriting")
@@ -189,8 +202,25 @@ def main():
     print("\n🔧 Initializing Enhanced RAG Pipeline...")
 
     from agents.enhanced_pipeline import EnhancedRAGPipeline, RLTrainer
+    from agents.flashrag_components import DenseRetrieverWrapper, GeneratorWrapper
+
+    # Select retriever based on dataset
+    if args.dataset == "hotpotqa":
+        index_path = str(PROJECT_ROOT / "data/indexes/wiki_hotpotqa_e5/e5_Flat.index")
+        corpus_path = str(PROJECT_ROOT / "data/corpus/wiki/wiki_hotpotqa_subset.jsonl")
+        print(f"   Using HotpotQA retriever (wiki index)")
+        retriever = DenseRetrieverWrapper(index_path=index_path, corpus_path=corpus_path)
+    else:
+        retriever = DenseRetrieverWrapper()  # Default custom dataset retriever
+
+    generator = GeneratorWrapper(
+        model=args.model,
+        use_ollama=args.use_ollama
+    )
 
     pipeline = EnhancedRAGPipeline(
+        retriever=retriever,
+        generator=generator,
         use_query_rewriter=not args.no_rewriter,
         use_learned_retrieval=not args.no_policy,
         use_ollama=args.use_ollama,
@@ -198,11 +228,13 @@ def main():
         topk=5,
         use_difficulty_features=args.use_difficulty_features,
         use_dynamic_topk=args.dynamic_topk,
-        topk_options=topk_options if args.dynamic_topk else None
+        topk_options=topk_options if args.dynamic_topk else None,
+        use_learned_rewrite=args.learned_rewrite
     )
 
     print(f"   Query Rewriter: {'Enabled' if not args.no_rewriter else 'Disabled'}")
     print(f"   Learned Policy: {'Enabled' if not args.no_policy else 'Disabled'}")
+    print(f"   Learned Rewrite: {'Enabled' if args.learned_rewrite else 'Disabled'}")
     print(f"   Generator: {'Ollama' if args.use_ollama else 'GPT-4o-mini'}")
     print(f"   Difficulty Features: {'Enabled' if args.use_difficulty_features else 'Disabled'}")
     print(f"   Policy Mode: {'Dynamic TopK' if args.dynamic_topk else 'Binary'}")
@@ -215,6 +247,7 @@ def main():
         retrieval_cost=args.retrieval_cost,
         wrong_no_retrieval_penalty=args.wrong_no_retrieval_penalty,
         entropy_coef=args.entropy_coef,
+        rewrite_entropy_coef=args.rewrite_entropy_coef,
         eval_temperature=args.eval_temperature,
         output_dir=args.output_dir,
         use_wandb=args.wandb,
@@ -241,7 +274,10 @@ def main():
             # Create descriptive run name
             timestamp = datetime.now().strftime("%m%d_%H%M")
             mode_tag = "dyn-topk" if args.dynamic_topk else "binary"
-            run_name = f"{args.dataset}_{mode_tag}_e{args.epochs}_{timestamp}"
+            rewrite_tag = "+rewrite" if args.learned_rewrite else ""
+            algo_tag = args.algorithm
+            gen_tag = "ollama" if args.use_ollama else "gpt4omini"
+            run_name = f"{args.dataset}_{mode_tag}{rewrite_tag}_{algo_tag}_{gen_tag}_e{args.epochs}_{timestamp}"
 
             # Comprehensive config for experiment tracking
             wandb_config = {
@@ -273,14 +309,24 @@ def main():
                 "topk_options": topk_options if args.dynamic_topk else None,
                 "base_retrieval_cost": args.base_retrieval_cost if args.dynamic_topk else None,
                 "per_doc_cost": args.per_doc_cost if args.dynamic_topk else None,
+                # Algorithm
+                "algorithm": args.algorithm,
+                "group_size": args.group_size if args.algorithm == "grpo" else None,
+                # Learned rewrite
+                "use_learned_rewrite": args.learned_rewrite,
+                "rewrite_entropy_coef": args.rewrite_entropy_coef if args.learned_rewrite else None,
             }
 
             tags = [
                 args.dataset,
                 mode_tag,
+                algo_tag,
+                gen_tag,
                 f"epochs-{args.epochs}",
                 "curriculum" if not args.no_curriculum else "no-curriculum",
             ]
+            if args.learned_rewrite:
+                tags.append("learned-rewrite")
 
             wandb.init(
                 project=args.wandb_project,
@@ -293,6 +339,24 @@ def main():
             print("⚠️  wandb not installed, continuing without")
             args.wandb = False
     
+    # Initialize energy tracking
+    emissions_tracker = None
+    try:
+        from codecarbon import EmissionsTracker
+        emissions_tracker = EmissionsTracker(
+            project_name="rl-rag-training",
+            output_dir=args.output_dir,
+            output_file="emissions.csv",
+            log_level="warning",
+            tracking_mode="process",
+        )
+        emissions_tracker.start()
+        print("\n⚡ Energy tracking: Enabled (CodeCarbon)")
+    except ImportError:
+        print("\n⚡ Energy tracking: Disabled (install codecarbon)")
+    except Exception as e:
+        print(f"\n⚡ Energy tracking: Failed to start ({e})")
+
     # Train with curriculum learning
     print("\n" + "=" * 70)
     results = trainer.train(
@@ -302,8 +366,27 @@ def main():
         update_every=args.update_every,
         start_epsilon=args.epsilon,
         use_curriculum=not args.no_curriculum,
-        curriculum_phases=args.curriculum_phases
+        curriculum_phases=args.curriculum_phases,
+        algorithm=args.algorithm,
+        group_size=args.group_size
     )
+
+    # Stop energy tracking
+    emissions_data = None
+    if emissions_tracker is not None:
+        try:
+            total_emissions = emissions_tracker.stop()
+            emissions_data = {
+                "total_emissions_kg_co2": total_emissions,
+                "total_energy_kwh": emissions_tracker.final_emissions_data.energy_consumed,
+                "duration_seconds": emissions_tracker.final_emissions_data.duration,
+                "cpu_energy_kwh": emissions_tracker.final_emissions_data.cpu_energy,
+                "ram_energy_kwh": emissions_tracker.final_emissions_data.ram_energy,
+                "gpu_energy_kwh": emissions_tracker.final_emissions_data.gpu_energy,
+                "country_iso_code": emissions_tracker.final_emissions_data.country_iso_code,
+            }
+        except Exception as e:
+            print(f"⚠️  Energy tracking error: {e}")
 
     
     # Print final results
@@ -329,6 +412,25 @@ def main():
         else:
             print(f"   Cost: $0.00 (local model)")
 
+    # Print energy summary
+    if emissions_data:
+        print(f"\n⚡ Energy & Carbon Summary:")
+        print(f"   Total energy: {emissions_data['total_energy_kwh']:.6f} kWh")
+        print(f"   CPU energy: {emissions_data['cpu_energy_kwh']:.6f} kWh")
+        print(f"   RAM energy: {emissions_data['ram_energy_kwh']:.6f} kWh")
+        print(f"   GPU energy: {emissions_data['gpu_energy_kwh']:.6f} kWh")
+        print(f"   CO2 emissions: {emissions_data['total_emissions_kg_co2']:.6f} kg CO2eq")
+        print(f"   Duration: {emissions_data['duration_seconds']:.0f}s")
+        if emissions_data['total_energy_kwh'] > 0 and results['best_f1'] > 0:
+            print(f"   Efficiency: {results['best_f1'] / emissions_data['total_energy_kwh']:.2f} F1/kWh")
+
+        # Save emissions data alongside training results
+        import json
+        emissions_path = Path(args.output_dir) / "energy_report.json"
+        with open(emissions_path, "w") as f:
+            json.dump(emissions_data, f, indent=2)
+        print(f"   Saved to: {emissions_path}")
+
     # Log to wandb
     if args.wandb:
         log_data = {
@@ -341,6 +443,16 @@ def main():
             log_data["total_api_calls"] = usage_stats.get('total_calls', 0)
             log_data["total_tokens"] = usage_stats.get('total_tokens', 0)
             log_data["total_cost_usd"] = usage_stats.get('total_cost_usd', 0)
+        # Add energy tracking to wandb
+        if emissions_data:
+            log_data["energy/total_kwh"] = emissions_data["total_energy_kwh"]
+            log_data["energy/cpu_kwh"] = emissions_data["cpu_energy_kwh"]
+            log_data["energy/ram_kwh"] = emissions_data["ram_energy_kwh"]
+            log_data["energy/gpu_kwh"] = emissions_data["gpu_energy_kwh"]
+            log_data["energy/co2_kg"] = emissions_data["total_emissions_kg_co2"]
+            log_data["energy/duration_s"] = emissions_data["duration_seconds"]
+            if emissions_data["total_energy_kwh"] > 0:
+                log_data["energy/f1_per_kwh"] = results['best_f1'] / emissions_data["total_energy_kwh"]
         wandb.log(log_data)
         wandb.finish()
     

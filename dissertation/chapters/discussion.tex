@@ -1,0 +1,171 @@
+% ============================================================================
+% Chapter 6: Discussion
+% ============================================================================
+
+\chapter{Discussion}
+\label{ch:discussion}
+
+This chapter analyzes the experimental findings, discusses limitations, and considers implications for RAG system optimization.
+
+\section{Interpretation of Results}
+
+\subsection{Why Did the Policy Learn ``Always Retrieve''?}
+
+The trained policy converged to a near-deterministic strategy of always retrieving (99.6\% retrieval probability). This behavior is optimal for our dataset for several reasons:
+
+\textbf{1. Domain Characteristics:}
+Academic question-answering requires specialized knowledge not present in the LLM's training data. The no-retrieval baseline (18.52\% F1) demonstrates that GPT-4o-mini's parametric knowledge is insufficient for this domain.
+
+\textbf{2. Reward Signal:}
+The wrong-no-retrieval penalty ($-0.3$) is applied when F1 $< 0.3$, which occurs almost always without retrieval on this dataset. The expected value calculation favors retrieval:
+\begin{align}
+    \mathbb{E}[\text{Retrieve}] &= 0.34 - 0.1 = 0.24 \\
+    \mathbb{E}[\text{No Retrieve}] &= 0.18 - 0.3 = -0.12
+\end{align}
+
+\textbf{3. Correct Learning:}
+The policy discovered through training what would otherwise need to be hardcoded as a rule: ``always retrieve for academic questions.'' This demonstrates that RL can learn domain-appropriate behavior from data.
+
+\subsection{The Value of the Lazy Agent Fix}
+
+The lazy agent problem and its resolution provide several insights:
+
+\textbf{Reward Shaping Matters:}
+The original reward function inadvertently created an incentive to skip retrieval. The fix required making the penalty for wrong no-retrieval answers ($p_{\text{lazy}} = 0.3$) exceed the retrieval cost ($c_{\text{retr}} = 0.1$). This principle---that negative outcomes from inaction should be penalized more than the cost of action---has broader applicability in RL reward design.
+
+\textbf{Curriculum Learning Helps:}
+Forcing high retrieval rates early in training ensured the policy experienced the benefits of retrieval before being allowed to skip it. Without curriculum learning, the policy could converge to local minima without exploring the retrieval action space.
+
+\textbf{Deterministic Evaluation is Dangerous:}
+The policy appeared to learn during training (with epsilon-greedy exploration) but collapsed to degenerate behavior during deterministic evaluation. Temperature-based sampling during evaluation prevented this collapse.
+
+\subsection{Comparison to Related Work}
+
+Our approach differs from prior work in several ways:
+
+\begin{table}[H]
+    \centering
+    \caption{Comparison with related approaches}
+    \label{tab:related-comparison}
+    \begin{tabularx}{\textwidth}{lXX}
+        \toprule
+        Approach & Method & Key Difference \\
+        \midrule
+        Self-RAG & LLM outputs retrieval tokens & Requires fine-tuning the LLM itself \\
+        Adaptive-RAG & Query complexity classifier & Uses heuristic rules, not learned policy \\
+        FLARE & Confidence-based triggers & Requires token probabilities (not available for all APIs) \\
+        Ours & Separate policy network with RL & Modular, works with black-box LLMs \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Our modular approach allows the policy to be trained independently of the generator, enabling use with proprietary APIs like GPT-4o-mini where fine-tuning is not possible.
+
+\section{Limitations}
+
+\subsection{Dataset Homogeneity}
+
+Our custom dataset consists entirely of academic questions that require retrieval. This homogeneity means:
+\begin{itemize}
+    \item The optimal policy is trivial (always retrieve)
+    \item We cannot demonstrate selective retrieval behavior
+    \item Results may not generalize to mixed-difficulty datasets
+\end{itemize}
+
+A dataset with questions of varying difficulty (some answerable from parametric knowledge, some requiring retrieval) would better showcase the policy's decision-making capability.
+
+\subsection{Single-Step Decision}
+
+Our MDP formulation uses a single retrieval decision per question. This limits:
+\begin{itemize}
+    \item Multi-hop reasoning (no iterative retrieval)
+    \item Query refinement based on initial results
+    \item Adaptive topk selection
+\end{itemize}
+
+Extending to multi-step decisions would increase complexity but enable more sophisticated retrieval strategies.
+
+\subsection{Computational Cost}
+
+RL training requires:
+\begin{itemize}
+    \item Multiple forward passes through the retriever and generator
+    \item API calls for each training sample per epoch
+    \item Significant time (18+ hours for 10 epochs)
+\end{itemize}
+
+This limits rapid iteration and hyperparameter tuning.
+
+\subsection{Evaluation Metrics}
+
+We use F1 score as the primary metric, which:
+\begin{itemize}
+    \item Rewards partial matches
+    \item May not capture semantic correctness
+    \item Differs from human judgment of answer quality
+\end{itemize}
+
+Human evaluation or semantic similarity metrics could provide additional perspectives.
+
+\section{Implications}
+
+\subsection{For RAG System Design}
+
+\textbf{1. Generator Quality is Primary:}
+Our baseline experiments showed that upgrading the generator (Ollama $\rightarrow$ GPT-4o-mini) improved F1 by 90.9\%, while upgrading retrieval (BM25 $\rightarrow$ Dense E5) improved F1 by only 13.1\%. This suggests prioritizing generator quality in resource-constrained settings.
+
+\textbf{2. Domain-Specific Retrieval Strategies:}
+The optimal retrieval strategy depends on the domain. For academic QA, always retrieving is optimal. For general-purpose assistants, adaptive retrieval could reduce costs.
+
+\textbf{3. Reward Function Design:}
+Reward functions for retrieval policies must carefully balance:
+\begin{itemize}
+    \item Quality incentives (reward correct answers)
+    \item Efficiency incentives (penalize unnecessary retrieval)
+    \item Safety margins (penalize wrong answers without retrieval more than the cost of retrieving)
+\end{itemize}
+
+\subsection{For RL in NLP}
+
+\textbf{1. Lazy Behavior is Common:}
+The lazy agent problem likely affects many RL applications where inaction has lower immediate cost than action. Our five-solution framework may be applicable to other domains.
+
+\textbf{2. Curriculum Learning for Exploration:}
+Forcing exploration early in training helps policies learn the value of actions before learning to avoid them.
+
+\textbf{3. Evaluation Protocol Matters:}
+The gap between training (stochastic) and evaluation (deterministic) behavior can mask fundamental problems. Temperature-based evaluation or other stochastic protocols may be necessary.
+
+\section{Future Directions}
+
+\subsection{Mixed-Difficulty Datasets}
+
+Creating or using datasets with questions of varying difficulty would enable:
+\begin{itemize}
+    \item Demonstration of selective retrieval
+    \item Analysis of what question features predict retrieval need
+    \item More realistic efficiency gains
+\end{itemize}
+
+\subsection{Multi-Step Retrieval}
+
+Extending the action space to include:
+\begin{itemize}
+    \item Multiple retrieval iterations
+    \item Query reformulation actions
+    \item Adaptive topk selection
+\end{itemize}
+
+would enable more sophisticated retrieval strategies for complex questions.
+
+\subsection{Transfer Learning}
+
+Investigating whether policies trained on one domain transfer to others could reduce training costs and enable rapid deployment to new domains.
+
+\subsection{Integration with Query Rewriting}
+
+Our pipeline includes a query rewriter, but it is trained separately from the retrieval policy. Joint optimization could improve end-to-end performance.
+
+\section{Summary}
+
+This chapter analyzed experimental findings, identifying that the policy correctly learned domain-appropriate behavior (always retrieve for academic QA). The lazy agent problem highlighted important principles for reward design in retrieval optimization. Limitations include dataset homogeneity and single-step decisions, while implications span RAG system design and RL methodology. Future work should explore mixed-difficulty datasets and multi-step retrieval strategies.

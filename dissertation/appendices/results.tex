@@ -1,0 +1,216 @@
+% ============================================================================
+% Appendix B: Detailed Results
+% ============================================================================
+
+\chapter{Detailed Results}
+\label{app:results}
+
+This appendix provides detailed experimental results and additional analyses.
+
+\section{Complete Baseline Results}
+
+\begin{table}[H]
+    \centering
+    \caption{All baseline experiments on custom dataset}
+    \label{tab:all-baselines}
+    \begin{tabular}{llcccc}
+        \toprule
+        Retrieval & Generator & TopK & EM (\%) & F1 (\%) & Recall (\%) \\
+        \midrule
+        Dense E5 & GPT-4o-mini & 10 & 3.45 & 31.10 & 87.36 \\
+        Dense E5 & GPT-4o-mini & 5 & 3.45 & 30.82 & 83.91 \\
+        Dense E5 & GPT-4o-mini & 3 & 4.60 & 30.08 & 78.16 \\
+        BM25 & GPT-4o-mini & 5 & 2.30 & 27.49 & 75.86 \\
+        BM25 & Ollama & 5 & 2.30 & 14.40 & 75.86 \\
+        BM25 & Ollama & 10 & 0.00 & 3.43 & 80.46 \\
+        BM25 (Iter-RetGen) & Ollama & 5 & 2.30 & 12.96 & 72.41 \\
+        BM25 (Adaptive-RAG) & Ollama & 5 & 0.00 & 12.71 & 8.05 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{RL Training Detailed Logs}
+
+\subsection{Before Lazy Agent Fix}
+
+\begin{table}[H]
+    \centering
+    \caption{Epoch-by-epoch training (before fix)}
+    \label{tab:training-before}
+    \begin{tabular}{ccccccc}
+        \toprule
+        Epoch & Train F1 & Train Reward & Train Retr & Val F1 & Val Retr & $\epsilon$ \\
+        \midrule
+        1 & 0.158 & 0.188 & 72.6\% & 0.141 & 0.0\% & 0.50 \\
+        2 & 0.172 & 0.211 & 44.1\% & 0.141 & 0.0\% & 0.35 \\
+        3 & 0.173 & 0.214 & 35.2\% & 0.141 & 0.0\% & 0.24 \\
+        4 & 0.177 & 0.221 & 26.0\% & 0.141 & 0.0\% & 0.17 \\
+        5 & 0.175 & 0.219 & 28.5\% & 0.141 & 0.0\% & 0.12 \\
+        6 & 0.167 & 0.209 & 31.1\% & 0.141 & 0.0\% & 0.08 \\
+        7 & 0.190 & --- & 40.0\% & 0.141 & 0.0\% & 0.06 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{After Lazy Agent Fix}
+
+\begin{table}[H]
+    \centering
+    \caption{Epoch-by-epoch training (after fix)}
+    \label{tab:training-after}
+    \begin{tabular}{cccccccc}
+        \toprule
+        Epoch & Train F1 & Reward & Retr & Entropy & Val F1 & Val Retr & Phase \\
+        \midrule
+        1 & 0.29 & 0.24 & 100\% & 0.025 & 0.34 & 100\% & 1 \\
+        2 & 0.31 & 0.26 & 100\% & 0.025 & 0.34 & 100\% & 1 \\
+        3 & 0.32 & 0.27 & 100\% & 0.025 & 0.34 & 100\% & 1 \\
+        4 & 0.33 & 0.28 & 100\% & 0.025 & 0.34 & 100\% & 2 \\
+        5 & 0.33 & 0.28 & 100\% & 0.025 & 0.34 & 100\% & 2 \\
+        6 & 0.33 & 0.28 & 100\% & 0.025 & 0.34 & 100\% & 2 \\
+        7 & 0.33 & 0.28 & 100\% & 0.025 & 0.34 & 100\% & 3 \\
+        8 & 0.33 & 0.29 & 100\% & 0.025 & 0.34 & 100\% & 3 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Hyperparameter Configuration}
+
+\begin{table}[H]
+    \centering
+    \caption{Complete hyperparameter settings}
+    \label{tab:hyperparams}
+    \begin{tabular}{llc}
+        \toprule
+        Category & Parameter & Value \\
+        \midrule
+        \multirow{4}{*}{Data} & Dataset & custom \\
+        & Training samples & 492 \\
+        & Validation samples & 87 \\
+        & Random seed & 42 \\
+        \midrule
+        \multirow{5}{*}{Training} & Epochs & 10 \\
+        & Initial epsilon & 0.5 \\
+        & Epsilon decay & 0.7 \\
+        & Update frequency & 5 \\
+        & Learning rate & 0.001 \\
+        \midrule
+        \multirow{5}{*}{Reward} & Retrieval cost & 0.1 \\
+        & Efficiency bonus & 0.1 \\
+        & Wrong no-retrieval penalty & 0.3 \\
+        & Correct threshold & 0.5 \\
+        & Bad threshold & 0.3 \\
+        \midrule
+        \multirow{3}{*}{Exploration} & Entropy coefficient & 0.01 \\
+        & Eval temperature & 0.7 \\
+        & Curriculum phases & 3 \\
+        \midrule
+        \multirow{3}{*}{Model} & Policy hidden dim & 256 \\
+        & Encoder & E5-base-v2 \\
+        & Generator & GPT-4o-mini \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Dataset Quality Statistics}
+
+\begin{table}[H]
+    \centering
+    \caption{QA pair quality assessment results}
+    \label{tab:qa-quality}
+    \begin{tabular}{lcc}
+        \toprule
+        Metric & Training Set & Test Set \\
+        \midrule
+        Original pairs & 1,000 & 200 \\
+        After pre-filtering & 750 & 150 \\
+        High quality ($\geq 8.5$) & 380 & 65 \\
+        Promoted (8.0--8.5) & 112 & 22 \\
+        Final filtered & 492 & 87 \\
+        \midrule
+        Average score & 8.35 & 8.30 \\
+        Min score & 8.00 & 8.00 \\
+        Max score & 9.50 & 9.50 \\
+        Std deviation & 0.42 & 0.45 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Retrieval Analysis}
+
+\begin{table}[H]
+    \centering
+    \caption{Retrieval recall by method and TopK}
+    \label{tab:retrieval-detail}
+    \begin{tabular}{lccccc}
+        \toprule
+        Method & @1 & @3 & @5 & @10 & @20 \\
+        \midrule
+        BM25 & 32.18\% & 56.32\% & 75.86\% & 80.46\% & 85.06\% \\
+        Dense E5 & 45.98\% & 78.16\% & 83.91\% & 87.36\% & 90.80\% \\
+        \midrule
+        Improvement & +13.80\% & +21.84\% & +8.05\% & +6.90\% & +5.74\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Error Analysis}
+
+\subsection{Common Error Types}
+
+\begin{table}[H]
+    \centering
+    \caption{Error categorization (sample of 50 incorrect predictions)}
+    \label{tab:errors}
+    \begin{tabular}{lcc}
+        \toprule
+        Error Type & Count & Percentage \\
+        \midrule
+        Retrieval failure (answer not in docs) & 18 & 36\% \\
+        Partial answer (missing details) & 14 & 28\% \\
+        Wrong synthesis (incorrect reasoning) & 10 & 20\% \\
+        Format mismatch (correct but different format) & 5 & 10\% \\
+        Hallucination & 3 & 6\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Performance by Question Type}
+
+\begin{table}[H]
+    \centering
+    \caption{F1 score by question type}
+    \label{tab:question-types}
+    \begin{tabular}{lcc}
+        \toprule
+        Question Type & Count & Avg F1 (\%) \\
+        \midrule
+        What/Which & 35 & 34.2 \\
+        How & 22 & 31.8 \\
+        Why & 12 & 28.5 \\
+        Who/Where/When & 10 & 38.1 \\
+        Yes/No & 8 & 25.3 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Computational Resources}
+
+\begin{table}[H]
+    \centering
+    \caption{Resource usage summary}
+    \label{tab:resources}
+    \begin{tabular}{lc}
+        \toprule
+        Resource & Usage \\
+        \midrule
+        Training time (10 epochs) & $\sim$18 hours \\
+        GPU memory (MPS) & $\sim$4 GB \\
+        FAISS index size & 128 MB \\
+        Corpus size & 41,717 chunks \\
+        API calls (training) & $\sim$5,000 \\
+        API calls (evaluation) & $\sim$300 \\
+        Estimated API cost & $\sim$\$5 total \\
+        \bottomrule
+    \end{tabular}
+\end{table}

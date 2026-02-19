@@ -337,6 +337,112 @@ class AdaptiveQueryRewriter(RLQueryRewriter):
         return super().rewrite(question, deterministic)
 
 
+class StrategyRewriter:
+    """
+    Strategy-based query rewriter for RL-trained query reformulation.
+
+    Instead of a free-form LLM rewrite, selects from 5 discrete strategies:
+      0: original     - Use question as-is (free)
+      1: expand        - Add domain terms, synonyms, expand abbreviations
+      2: decompose     - Extract core retrievable fact as focused query
+      3: contextualize - Add implicit domain context
+      4: simplify      - Strip to essential keywords
+
+    The RL policy network learns which strategy works best per question.
+    Only strategies 1-4 require an LLM call; strategy 0 is free.
+    """
+
+    STRATEGY_NAMES = ["original", "expand", "decompose", "contextualize", "simplify"]
+
+    STRATEGY_PROMPTS = {
+        "expand": (
+            "You are a search query optimizer. Expand the following question by adding "
+            "relevant domain-specific terms, synonyms, and expanding any abbreviations "
+            "or acronyms. The goal is to improve document retrieval.\n\n"
+            "Original question: {question}\n\n"
+            "Provide ONLY the expanded query, nothing else."
+        ),
+        "decompose": (
+            "You are a search query optimizer. Decompose the following question into its "
+            "core retrievable fact. Extract the key entity and relationship that a search "
+            "engine needs to find. Remove filler words and focus on what matters.\n\n"
+            "Original question: {question}\n\n"
+            "Provide ONLY the focused query, nothing else."
+        ),
+        "contextualize": (
+            "You are a search query optimizer. Add implicit domain context to the following "
+            "question. If the question is about a technical topic, add the field name. If it "
+            "references something specific, add clarifying context that would help retrieval.\n\n"
+            "Original question: {question}\n\n"
+            "Provide ONLY the contextualized query, nothing else."
+        ),
+        "simplify": (
+            "You are a search query optimizer. Simplify the following question to its "
+            "essential keywords. Remove all question words, articles, and filler. Keep only "
+            "the core terms that matter for finding relevant documents.\n\n"
+            "Original question: {question}\n\n"
+            "Provide ONLY the simplified keywords, nothing else."
+        ),
+    }
+
+    def __init__(self, use_ollama: bool = False, model: str = "gpt-4o-mini"):
+        """
+        Initialize strategy rewriter.
+
+        Args:
+            use_ollama: Use local Ollama instead of OpenAI
+            model: Model name for rewriting LLM calls
+        """
+        self.use_ollama = use_ollama
+        self.model = model
+
+        if use_ollama:
+            from openai import OpenAI
+            self.client = OpenAI(
+                api_key="ollama",
+                base_url="http://localhost:11434/v1"
+            )
+            self.model = "llama3.1:8b-instruct-q4_K_M"
+        else:
+            from openai import OpenAI
+            self.client = OpenAI()
+
+        self.stats = {strategy: 0 for strategy in self.STRATEGY_NAMES}
+
+    def rewrite(self, question: str, strategy_idx: int) -> str:
+        """
+        Rewrite a question using the given strategy.
+
+        Args:
+            question: Original question
+            strategy_idx: Strategy index (0-4)
+
+        Returns:
+            Rewritten question (or original if strategy_idx == 0)
+        """
+        strategy_name = self.STRATEGY_NAMES[strategy_idx]
+        self.stats[strategy_name] += 1
+
+        if strategy_idx == 0:
+            return question
+
+        prompt_template = self.STRATEGY_PROMPTS[strategy_name]
+        prompt = prompt_template.format(question=question)
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=256,
+                temperature=0.0
+            )
+            rewritten = response.choices[0].message.content.strip()
+            return rewritten if rewritten else question
+        except Exception as e:
+            print(f"Strategy rewrite failed ({strategy_name}): {e}")
+            return question
+
+
 # Factory function
 def create_query_rewriter(
     rl_enabled: bool = False,

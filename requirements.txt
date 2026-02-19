@@ -32,6 +32,9 @@ jieba
 wandb
 pyyaml
 
+# Energy and carbon tracking
+codecarbon
+
 # FlashRAG optional dependencies (install as needed)
 # sentence-transformers>=3.0.1  # For easier retriever usage
 # pyserini  # For BM25 retrieval
