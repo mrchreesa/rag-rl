@@ -1,0 +1,9 @@
+{
+  "total_emissions_kg_co2": 0.05595907419868055,
+  "total_energy_kwh": 0.23552889316711023,
+  "duration_seconds": 18636.367978999857,
+  "cpu_energy_kwh": 0.22000974535315101,
+  "ram_energy_kwh": 0.015519147813958897,
+  "gpu_energy_kwh": 0.0,
+  "country_iso_code": "GBR"
+}

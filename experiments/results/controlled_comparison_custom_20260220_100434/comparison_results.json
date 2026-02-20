@@ -1,0 +1,98 @@
+{
+  "dataset": "custom",
+  "generator": "gpt-4o-mini",
+  "n_test_samples": 87,
+  "f1_function": "reward.py:compute_f1",
+  "configs": [
+    {
+      "config": "k=0 (parametric)",
+      "avg_f1": 0.18208453882836872,
+      "avg_em": 0.0,
+      "avg_topk": 0.0,
+      "retrieval_rate": 0.0,
+      "n_samples": 87,
+      "elapsed_seconds": 114.4690670967102,
+      "energy_kwh": 0.0014468270001680176,
+      "co2_kg": 0.00034375018014291917
+    },
+    {
+      "config": "k=1 (fixed)",
+      "avg_f1": 0.3165592579690679,
+      "avg_em": 0.05747126436781609,
+      "avg_topk": 1.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 87,
+      "elapsed_seconds": 127.08096981048584,
+      "energy_kwh": 0.0016062346185979515,
+      "co2_kg": 0.00038162367679806875
+    },
+    {
+      "config": "k=3 (fixed)",
+      "avg_f1": 0.3401416608043605,
+      "avg_em": 0.04597701149425287,
+      "avg_topk": 3.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 87,
+      "elapsed_seconds": 141.83366894721985,
+      "energy_kwh": 0.0017927007441438949,
+      "co2_kg": 0.00042592597710040385
+    },
+    {
+      "config": "k=5 (fixed)",
+      "avg_f1": 0.3438775254247,
+      "avg_em": 0.034482758620689655,
+      "avg_topk": 5.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 87,
+      "elapsed_seconds": 148.9712631702423,
+      "energy_kwh": 0.0018829160686855673,
+      "co2_kg": 0.0004473601458429352
+    },
+    {
+      "config": "k=10 (fixed)",
+      "avg_f1": 0.3489952635306837,
+      "avg_em": 0.034482758620689655,
+      "avg_topk": 10.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 87,
+      "elapsed_seconds": 182.6234188079834,
+      "energy_kwh": 0.002308261086561925,
+      "co2_kg": 0.0005484174432951611
+    },
+    {
+      "config": "RL Dynamic TopK + Learned Rewrite",
+      "avg_f1": 0.3386581555271313,
+      "avg_em": 0.04597701149425287,
+      "avg_topk": 3.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 87,
+      "elapsed_seconds": 145.98364305496216,
+      "topk_distribution": {
+        "0": 0.0,
+        "1": 0.0,
+        "3": 1.0,
+        "5": 0.0,
+        "7": 0.0,
+        "10": 0.0
+      },
+      "rewrite_strategy_distribution": {
+        "original": 1.0,
+        "expand": 0.0,
+        "decompose": 0.0,
+        "contextualize": 0.0,
+        "simplify": 0.0
+      },
+      "energy_kwh": 0.0018451541688233061,
+      "co2_kg": 0.0004383883338165605
+    }
+  ],
+  "energy": {
+    "total_emissions_kg_co2": 0.0025854657569960486,
+    "total_energy_kwh": 0.010882093686980662,
+    "duration_seconds": 861.0183048746549,
+    "cpu_energy_kwh": 0.010164783486735541,
+    "ram_energy_kwh": 0.0007173102002451195,
+    "gpu_energy_kwh": 0.0,
+    "country_iso_code": "GBR"
+  }
+}

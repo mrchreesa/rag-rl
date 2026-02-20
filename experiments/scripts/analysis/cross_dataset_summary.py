@@ -79,6 +79,7 @@ def print_master_table(datasets: dict, stats: dict = None):
         "k=5 (fixed)",
         "k=10 (fixed)",
         "RL Dynamic TopK",
+        "RL Dynamic TopK + Learned Rewrite",
     ]
     config_order = [c for c in config_order if c in all_configs]
     # Add any remaining
@@ -132,9 +133,13 @@ def create_cross_dataset_figure(datasets: dict, output_dir: Path):
 
     config_order = [
         "k=0 (parametric)", "k=1 (fixed)", "k=3 (fixed)",
-        "k=5 (fixed)", "k=10 (fixed)", "RL Dynamic TopK"
+        "k=5 (fixed)", "k=10 (fixed)", "RL Dynamic TopK",
+        "RL Dynamic TopK + Learned Rewrite"
     ]
     config_order = [c for c in config_order if c in all_configs_set]
+    for c in sorted(all_configs_set):
+        if c not in config_order:
+            config_order.append(c)
 
     fig, ax = plt.subplots(figsize=(14, 6))
 
@@ -196,7 +201,10 @@ def create_retrieval_benefit_figure(datasets: dict, output_dir: Path):
             (c["avg_f1"] * 100 for c in configs if "fixed" in c.get("config", "")),
             default=0
         )
-        rl = config_dict.get("RL Dynamic TopK", {}).get("avg_f1", 0) * 100
+        # Try Phase 2 name first, then Phase 1
+        rl_config = config_dict.get("RL Dynamic TopK + Learned Rewrite",
+                                    config_dict.get("RL Dynamic TopK", {}))
+        rl = rl_config.get("avg_f1", 0) * 100
 
         ds_names.append(ds_name)
         k0_f1s.append(k0)
@@ -209,7 +217,7 @@ def create_retrieval_benefit_figure(datasets: dict, output_dir: Path):
 
     ax.bar(x - width, k0_f1s, width, label="Parametric (k=0)", color="#E57373")
     ax.bar(x, best_fixed_f1s, width, label="Best Fixed-K", color="#64B5F6")
-    ax.bar(x + width, rl_f1s, width, label="RL Dynamic TopK", color="#81C784")
+    ax.bar(x + width, rl_f1s, width, label="RL Agent (Best)", color="#81C784")
 
     ax.set_xlabel("Dataset")
     ax.set_ylabel("F1 (%)")

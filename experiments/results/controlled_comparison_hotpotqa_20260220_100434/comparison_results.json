@@ -1,0 +1,98 @@
+{
+  "dataset": "hotpotqa",
+  "generator": "gpt-4o-mini",
+  "n_test_samples": 500,
+  "f1_function": "reward.py:compute_f1",
+  "configs": [
+    {
+      "config": "k=0 (parametric)",
+      "avg_f1": 0.35478644586713814,
+      "avg_em": 0.228,
+      "avg_topk": 0.0,
+      "retrieval_rate": 0.0,
+      "n_samples": 500,
+      "elapsed_seconds": 335.0670590400696,
+      "energy_kwh": 0.004235034500628789,
+      "co2_kg": 0.0010061976119698933
+    },
+    {
+      "config": "k=1 (fixed)",
+      "avg_f1": 0.3891876958542318,
+      "avg_em": 0.254,
+      "avg_topk": 1.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 500,
+      "elapsed_seconds": 380.01354002952576,
+      "energy_kwh": 0.004803129431289937,
+      "co2_kg": 0.0011411707184507448
+    },
+    {
+      "config": "k=3 (fixed)",
+      "avg_f1": 0.4197412223432733,
+      "avg_em": 0.276,
+      "avg_topk": 3.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 500,
+      "elapsed_seconds": 382.6426131725311,
+      "energy_kwh": 0.004836359243546632,
+      "co2_kg": 0.0011490657563150005
+    },
+    {
+      "config": "k=5 (fixed)",
+      "avg_f1": 0.42478501723980727,
+      "avg_em": 0.288,
+      "avg_topk": 5.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 500,
+      "elapsed_seconds": 410.1220853328705,
+      "energy_kwh": 0.005183682292823726,
+      "co2_kg": 0.0012315858922696962
+    },
+    {
+      "config": "k=10 (fixed)",
+      "avg_f1": 0.4457471742929116,
+      "avg_em": 0.292,
+      "avg_topk": 10.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 500,
+      "elapsed_seconds": 406.5322279930115,
+      "energy_kwh": 0.005138308779443468,
+      "co2_kg": 0.0012208056445991943
+    },
+    {
+      "config": "RL Dynamic TopK + Learned Rewrite",
+      "avg_f1": 0.4586896672754145,
+      "avg_em": 0.302,
+      "avg_topk": 10.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 500,
+      "elapsed_seconds": 886.1337251663208,
+      "topk_distribution": {
+        "0": 0.0,
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "7": 0.0,
+        "10": 1.0
+      },
+      "rewrite_strategy_distribution": {
+        "original": 0.0,
+        "expand": 0.0,
+        "decompose": 0.0,
+        "contextualize": 1.0,
+        "simplify": 0.0
+      },
+      "energy_kwh": 0.011200166644257596,
+      "co2_kg": 0.002661036392842518
+    }
+  ],
+  "energy": {
+    "total_emissions_kg_co2": 0.008409862016447047,
+    "total_energy_kwh": 0.03539668089199015,
+    "duration_seconds": 2800.664192541968,
+    "cpu_energy_kwh": 0.033063358400083946,
+    "ram_energy_kwh": 0.0023333224919061947,
+    "gpu_energy_kwh": 0.0,
+    "country_iso_code": "GBR"
+  }
+}

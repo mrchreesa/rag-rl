@@ -1,0 +1,91 @@
+{
+  "dataset": "hotpotqa",
+  "generator": "gpt-4o-mini",
+  "n_test_samples": 500,
+  "f1_function": "reward.py:compute_f1",
+  "configs": [
+    {
+      "config": "k=0 (parametric)",
+      "avg_f1": 0.35414965781689434,
+      "avg_em": 0.228,
+      "avg_topk": 0.0,
+      "retrieval_rate": 0.0,
+      "n_samples": 500,
+      "elapsed_seconds": 370.58936500549316,
+      "energy_kwh": 0.004684052558616099,
+      "co2_kg": 0.0011128793633490403
+    },
+    {
+      "config": "k=1 (fixed)",
+      "avg_f1": 0.38885532908203363,
+      "avg_em": 0.256,
+      "avg_topk": 1.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 500,
+      "elapsed_seconds": 384.8037209510803,
+      "energy_kwh": 0.004863714461042847,
+      "co2_kg": 0.001155565055084709
+    },
+    {
+      "config": "k=3 (fixed)",
+      "avg_f1": 0.41607780745825573,
+      "avg_em": 0.276,
+      "avg_topk": 3.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 500,
+      "elapsed_seconds": 369.5182960033417,
+      "energy_kwh": 0.004670514815837357,
+      "co2_kg": 0.0011096629445799817
+    },
+    {
+      "config": "k=5 (fixed)",
+      "avg_f1": 0.42701461016940334,
+      "avg_em": 0.292,
+      "avg_topk": 5.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 500,
+      "elapsed_seconds": 369.38930773735046,
+      "energy_kwh": 0.004668884472728781,
+      "co2_kg": 0.0011092755929911584
+    },
+    {
+      "config": "k=10 (fixed)",
+      "avg_f1": 0.44553074551434046,
+      "avg_em": 0.292,
+      "avg_topk": 10.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 500,
+      "elapsed_seconds": 371.48029088974,
+      "energy_kwh": 0.004695313388153347,
+      "co2_kg": 0.0011155548125779654
+    },
+    {
+      "config": "RL Dynamic TopK",
+      "avg_f1": 0.44913109803376183,
+      "avg_em": 0.3,
+      "avg_topk": 7.0,
+      "retrieval_rate": 1.0,
+      "n_samples": 500,
+      "elapsed_seconds": 402.24413299560547,
+      "topk_distribution": {
+        "0": 0.0,
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0,
+        "7": 1.0,
+        "10": 0.0
+      },
+      "energy_kwh": 0.005084151997503901,
+      "co2_kg": 0.0012079385889349544
+    }
+  ],
+  "energy": {
+    "total_emissions_kg_co2": 0.006810876357517809,
+    "total_energy_kwh": 0.02866663169388233,
+    "duration_seconds": 2268.1793340002187,
+    "cpu_energy_kwh": 0.02677708389859375,
+    "ram_energy_kwh": 0.0018895477952885751,
+    "gpu_energy_kwh": 0.0,
+    "country_iso_code": "GBR"
+  }
+}

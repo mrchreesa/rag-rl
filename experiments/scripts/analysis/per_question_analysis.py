@@ -472,12 +472,15 @@ def main():
     print(f"Results dir: {results_dir}")
     print(f"Output dir: {output_dir}")
 
-    # Load predictions
+    # Load predictions — auto-detect RL prediction file
     rl_pred_path = results_dir / "predictions_RL_Dynamic_TopK.jsonl"
+    if not rl_pred_path.exists():
+        # Try Phase 2 filename (with learned rewrite)
+        rl_pred_path = results_dir / "predictions_RL_Dynamic_TopK_+_Learned_Rewrite.jsonl"
     k3_pred_path = results_dir / "predictions_k3_fixed.jsonl"
 
     if not rl_pred_path.exists():
-        print(f"ERROR: {rl_pred_path} not found. Run controlled_comparison.py first.")
+        print(f"ERROR: No RL predictions found in {results_dir}. Run controlled_comparison.py first.")
         return
     if not k3_pred_path.exists():
         print(f"ERROR: {k3_pred_path} not found. Run controlled_comparison.py first.")

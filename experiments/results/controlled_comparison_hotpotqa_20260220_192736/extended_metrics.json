@@ -1,0 +1,80 @@
+[
+  {
+    "config": "RL_Dynamic_TopK",
+    "n_samples": 500,
+    "avg_f1": 0.44913109803376183,
+    "avg_precision": 0.45146888194642,
+    "avg_recall": 0.5430150793650794,
+    "avg_sub_em": 0.452,
+    "avg_retrieval_recall": 0.502,
+    "avg_retrieval_precision": 0.20342857142857146,
+    "avg_input_tokens": 1043.632,
+    "total_input_tokens": 521816,
+    "f1_per_1k_tokens": 0.4303538968082253
+  },
+  {
+    "config": "k0_parametric",
+    "n_samples": 500,
+    "avg_f1": 0.35414965781689434,
+    "avg_precision": 0.35045257819759096,
+    "avg_recall": 0.4231357142857142,
+    "avg_sub_em": 0.358,
+    "avg_retrieval_recall": 0.0,
+    "avg_retrieval_precision": 0.0,
+    "avg_input_tokens": 20.446,
+    "total_input_tokens": 10223,
+    "f1_per_1k_tokens": 17.321219691719374
+  },
+  {
+    "config": "k10_fixed",
+    "n_samples": 500,
+    "avg_f1": 0.44553074551434046,
+    "avg_precision": 0.44575750101458916,
+    "avg_recall": 0.5406388888888889,
+    "avg_sub_em": 0.45,
+    "avg_retrieval_recall": 0.53,
+    "avg_retrieval_precision": 0.181,
+    "avg_input_tokens": 1482.904,
+    "total_input_tokens": 741452,
+    "f1_per_1k_tokens": 0.30044476615771515
+  },
+  {
+    "config": "k1_fixed",
+    "n_samples": 500,
+    "avg_f1": 0.38885532908203363,
+    "avg_precision": 0.39212165582843,
+    "avg_recall": 0.4777269841269841,
+    "avg_sub_em": 0.402,
+    "avg_retrieval_recall": 0.306,
+    "avg_retrieval_precision": 0.306,
+    "avg_input_tokens": 166.504,
+    "total_input_tokens": 83252,
+    "f1_per_1k_tokens": 2.335411335956095
+  },
+  {
+    "config": "k3_fixed",
+    "n_samples": 500,
+    "avg_f1": 0.41607780745825573,
+    "avg_precision": 0.4242132365075261,
+    "avg_recall": 0.5047222222222222,
+    "avg_sub_em": 0.422,
+    "avg_retrieval_recall": 0.41,
+    "avg_retrieval_precision": 0.256,
+    "avg_input_tokens": 459.688,
+    "total_input_tokens": 229844,
+    "f1_per_1k_tokens": 0.9051308875982313
+  },
+  {
+    "config": "k5_fixed",
+    "n_samples": 500,
+    "avg_f1": 0.42701461016940334,
+    "avg_precision": 0.42916704738889355,
+    "avg_recall": 0.5259666666666667,
+    "avg_sub_em": 0.442,
+    "avg_retrieval_recall": 0.474,
+    "avg_retrieval_precision": 0.224,
+    "avg_input_tokens": 750.852,
+    "total_input_tokens": 375426,
+    "f1_per_1k_tokens": 0.5687067626768036
+  }
+]
